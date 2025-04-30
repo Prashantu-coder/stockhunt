@@ -2,6 +2,8 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
+st.set_page_config(layout="wide")  # <-- Add this line to make it full-page
+
 # --- Upload data ---
 st.title("Smart Money Visualizer")
 uploaded_file = st.file_uploader("Upload Daily OHLCV CSV", type="csv")
@@ -43,20 +45,40 @@ if uploaded_file:
             elif row['low'] < min(df['low'].iloc[max(0, i-3):i]) and row['volume'] > avg_volume[i]:
                 df.at[i, 'tag'] = 'Bearish PoR'
 
+        # --- Define emojis for each tag ---
+        tag_emojis = {
+            'Bullish PoR': '💥 Bullish PoR',
+            'Bearish PoR': '💣 Bearish PoR',
+            'Aggressive Buyer': '🟢 Aggressive Buyer',
+            'Aggressive Seller': '🔴 Aggressive Seller',
+            'Buyer Absorption': '⛔ Buyer Absorption',
+            'Seller Absorption': '🚀 Seller Absorption',
+            'Bullish Weak Leg': '📉 Bullish Weak Leg',
+            'Bearish Weak Leg': '📈 Bearish Weak Leg',
+            'Bullish POI': '🐂 Bullish POI',
+            'Bearish POI': '🐻 Bearish POI'
+        }
+
         # --- Plot chart ---
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df['date'], y=df['close'], mode='lines', name='Close Price'))
+        fig.add_trace(go.Scatter(x=df['date'], y=df['close'], mode='lines', name='Close Price', line=dict(color='lightgrey')))
 
         for tag in df['tag'].unique():
             if tag:
                 subset = df[df['tag'] == tag]
+                display_name = tag_emojis.get(tag, tag)  # Use emoji label if available, otherwise just tag
                 fig.add_trace(go.Scatter(
                     x=subset['date'],
                     y=subset['close'],
                     mode='markers',
-                    name=tag,
-                    marker=dict(size=8),
-                    text=tag
+                    name=display_name,
+                    marker=dict(
+                        size=10,
+                        symbol='circle',  # You can change marker shape if you want
+                        line=dict(width=1),
+                    ),
+                    text=[display_name]*len(subset),
+                    hoverinfo='text'
                 ))
 
         st.plotly_chart(fig, use_container_width=True)
