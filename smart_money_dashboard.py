@@ -80,7 +80,7 @@ if uploaded_file:
                     text=[display_name]*len(subset),
                     hoverinfo='text'
                 ))
-
+        fig.update_layout(height=800)  # <-- 👈 Add this line to control chart height
         st.plotly_chart(fig, use_container_width=True)
         st.write(df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].tail(30))
 
