@@ -75,8 +75,8 @@ if not signals.empty:
 fig.update_layout(
     title=f"🚨 {symbol} SIGNALS 🚨",
     height=600,
-    font=dict(size=18)
-st.plotly_chart(fig, use_container_width=True))
+    font=dict(size=18))
+st.plotly_chart(fig, use_container_width=True)
 
 # --- SIMPLE TABLE ---
 if not signals.empty:
