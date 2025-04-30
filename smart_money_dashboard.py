@@ -26,7 +26,7 @@ def detect_signals(df):
     
     for i in range(1, len(df)):
         # Bullish POR
-        if (df['CLOSE'].iloc[i] > df['HIGH'].iloc[i-1] * (1 + MIN_POR_MOVE) and \
+        if (df['CLOSE'].iloc[i] > df['HIGH'].iloc[i-1] * (1 + MIN_POR_MOVE)) and \
            (df['VOLUME'].iloc[i] > avg_volume.iloc[i]):
             df.loc[df.index[i], 'Signal'] = df['HIGH'].iloc[i]
             df.loc[df.index[i], 'Signal_Type'] = 'Bullish POR'
