@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-st.set_page_config(layout="wide")  # <-- Add this line to make it full-page
+st.set_page_config(layout="wide")
 
 # --- Upload data ---
 st.title("Smart Money Visualizer")
@@ -59,28 +59,73 @@ if uploaded_file:
             'Bearish POI': '🐻 Bearish POI'
         }
 
+        # --- Define marker symbol for each tag ---
+        tag_symbols = {
+            'Bullish PoR': 'star',
+            'Bearish PoR': 'star-diamond',
+            'Aggressive Buyer': 'triangle-up',
+            'Aggressive Seller': 'triangle-down',
+            'Buyer Absorption': 'x',
+            'Seller Absorption': 'x-open',
+            'Bullish Weak Leg': 'diamond',
+            'Bearish Weak Leg': 'diamond-open',
+            'Bullish POI': 'square',
+            'Bearish POI': 'square-open'
+        }
+
+        # --- Define marker color for each tag ---
+        tag_colors = {
+            'Bullish PoR': 'green',
+            'Bearish PoR': 'red',
+            'Aggressive Buyer': 'lime',
+            'Aggressive Seller': 'orangered',
+            'Buyer Absorption': 'blue',
+            'Seller Absorption': 'purple',
+            'Bullish Weak Leg': 'deepskyblue',
+            'Bearish Weak Leg': 'hotpink',
+            'Bullish POI': 'darkgreen',
+            'Bearish POI': 'darkred'
+        }
+
         # --- Plot chart ---
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df['date'], y=df['close'], mode='lines', name='Close Price', line=dict(color='lightgrey')))
+
+        fig.add_trace(go.Scatter(
+            x=df['date'], 
+            y=df['close'], 
+            mode='lines', 
+            name='Close Price', 
+            line=dict(color='lightgrey')
+        ))
 
         for tag in df['tag'].unique():
             if tag:
                 subset = df[df['tag'] == tag]
-                display_name = tag_emojis.get(tag, tag)  # Use emoji label if available, otherwise just tag
+                display_name = tag_emojis.get(tag, tag)
+                symbol = tag_symbols.get(tag, 'circle')
+                color = tag_colors.get(tag, 'black')
                 fig.add_trace(go.Scatter(
                     x=subset['date'],
                     y=subset['close'],
                     mode='markers',
                     name=display_name,
                     marker=dict(
-                        size=10,
-                        symbol='square',  # You can change marker shape if you want
-                        line=dict(width=1),
+                        size=12,
+                        symbol=symbol,
+                        color=color,
+                        line=dict(width=1, color='black')
                     ),
                     text=[display_name]*len(subset),
                     hoverinfo='text'
                 ))
-        fig.update_layout(height=800)  # <-- 👈 Add this line to control chart height
+
+        fig.update_layout(
+            height=800,
+            plot_bgcolor="white",
+            legend=dict(font=dict(size=12)),
+            title='Smart Money Signals Chart'
+        )
+
         st.plotly_chart(fig, use_container_width=True)
         st.write(df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].tail(30))
 
