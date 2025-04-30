@@ -10,77 +10,45 @@ SHEET_NAME = "Daily Price"
 GSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={quote(SHEET_NAME)}"
 
 def clean_data(df):
-    """Clean and convert raw dataframe"""
-    # Remove unnamed columns
-    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-    
-    # Convert date - handle Excel serial numbers and string dates
+    """Clean and prepare data without showing preview"""
+    # Convert date (handles Excel serial numbers and string dates)
     if df['DATE'].dtype == 'int64':
         df['DATE'] = pd.to_datetime(df['DATE'], unit='D', origin='1899-12-30')
     else:
         df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
     
-    # Clean numeric columns
+    # Clean numeric columns (remove commas)
     num_cols = ['OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME']
     for col in num_cols:
         if df[col].dtype == object:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce')
     
-    # Drop rows with invalid dates or missing values
-    df = df.dropna(subset=['DATE', 'SYMBOL'])
-    return df.sort_values('DATE')
+    return df.dropna(subset=['DATE', 'SYMBOL']).sort_values('DATE')
 
 def detect_signals(df):
-    """Detect Smart Money patterns"""
+    """Smart Money signal detection"""
     df = df.copy()
     df['Signal'] = np.nan
     df['Signal_Type'] = np.nan
     
-    # Calculate technical metrics
+    # Technical calculations
     df['Body'] = abs(df['CLOSE'] - df['OPEN'])
     df['Upper_Wick'] = df['HIGH'] - df[['OPEN', 'CLOSE']].max(axis=1)
     df['Lower_Wick'] = df[['OPEN', 'CLOSE']].min(axis=1) - df['LOW']
     avg_volume = df['VOLUME'].rolling(20).mean().fillna(df['VOLUME'].mean())
     
-    # Signal detection parameters
-    VOLUME_THRESHOLD = 1.5
-    WICK_RATIO = 1.5
-    
+    # Signal detection
     for i in range(1, len(df)):
-        # Bullish Breakout
-        if (df['CLOSE'].iloc[i] > df['HIGH'].iloc[i-1]) and \
-           (df['VOLUME'].iloc[i] > avg_volume.iloc[i] * VOLUME_THRESHOLD):
-            df.loc[df.index[i], 'Signal'] = df['HIGH'].iloc[i]
-            df.loc[df.index[i], 'Signal_Type'] = 'Bullish POR'
-        
-        # Bearish Breakout
-        elif (df['CLOSE'].iloc[i] < df['LOW'].iloc[i-1]) and \
-             (df['VOLUME'].iloc[i] > avg_volume.iloc[i] * VOLUME_THRESHOLD):
-            df.loc[df.index[i], 'Signal'] = df['LOW'].iloc[i]
-            df.loc[df.index[i], 'Signal_Type'] = 'Bearish POR'
-        
-        # Buyers Absorption
-        elif (df['Lower_Wick'].iloc[i] > df['Body'].iloc[i] * WICK_RATIO) and \
-             (df['CLOSE'].iloc[i] > df['OPEN'].iloc[i]) and \
-             (df['VOLUME'].iloc[i] > avg_volume.iloc[i]):
-            df.loc[df.index[i], 'Signal'] = df['LOW'].iloc[i]
-            df.loc[df.index[i], 'Signal_Type'] = 'Buyers Absorption'
-        
-        # Sellers Absorption
-        elif (df['Upper_Wick'].iloc[i] > df['Body'].iloc[i] * WICK_RATIO) and \
-             (df['CLOSE'].iloc[i] < df['OPEN'].iloc[i]) and \
-             (df['VOLUME'].iloc[i] > avg_volume.iloc[i]):
-            df.loc[df.index[i], 'Signal'] = df['HIGH'].iloc[i]
-            df.loc[df.index[i], 'Signal_Type'] = 'Sellers Absorption'
+        if (df['CLOSE'].iloc[i] > df['HIGH'].iloc[i-1]) and (df['VOLUME'].iloc[i] > avg_volume.iloc[i] * 1.5):
+            df.loc[df.index[i], ['Signal', 'Signal_Type']] = [df['HIGH'].iloc[i], 'Bullish POR']
+        elif (df['CLOSE'].iloc[i] < df['LOW'].iloc[i-1]) and (df['VOLUME'].iloc[i] > avg_volume.iloc[i] * 1.5):
+            df.loc[df.index[i], ['Signal', 'Signal_Type']] = [df['LOW'].iloc[i], 'Bearish POR']
     
     return df
 
 def create_chart(df, symbol):
-    """Create interactive visualization"""
-    fig = go.Figure()
-    
-    # Candlestick
-    fig.add_trace(go.Candlestick(
+    """Create clean visualization without preview clutter"""
+    fig = go.Figure(go.Candlestick(
         x=df['DATE'],
         open=df['OPEN'],
         high=df['HIGH'],
@@ -89,7 +57,6 @@ def create_chart(df, symbol):
         name='Price'
     ))
     
-    # Add signals
     signals = df[df['Signal_Type'].notna()]
     for _, row in signals.iterrows():
         fig.add_annotation(
@@ -102,42 +69,36 @@ def create_chart(df, symbol):
         )
     
     fig.update_layout(
-        title=f"{symbol} - Smart Money Analysis",
-        xaxis_rangeslider_visible=False,
-        hovermode="x unified"
+        title=f"{symbol} Analysis",
+        xaxis_rangeslider_visible=False
     )
     return fig
 
-# Streamlit App
+# Streamlit UI (Minimal Version)
 st.set_page_config(layout="wide")
-st.title("📊 Smart Money Dashboard")
+st.title("Smart Money Dashboard")
 
 @st.cache_data(ttl=3600)
 def load_data():
     try:
-        df = pd.read_csv(GSHEET_URL)
-        return clean_data(df)
+        return clean_data(pd.read_csv(GSHEET_URL))
     except Exception as e:
-        st.error(f"Data loading failed: {str(e)}")
+        st.error(f"Data error: {str(e)}")
         return pd.DataFrame()
 
+# Main App Flow
 df = load_data()
-
 if not df.empty:
-    st.subheader("Data Preview")
-    st.dataframe(df.head(3))
-    
-    symbol = st.selectbox("Select Symbol", sorted(df['SYMBOL'].astype(str).unique()))
-    
+    symbol = st.selectbox("Select Symbol", sorted(df['SYMBOL'].unique()))
     if symbol:
-        symbol_df = df[df['SYMBOL'] == symbol].copy()
-        analyzed_df = detect_signals(symbol_df)
-        
+        analyzed_df = detect_signals(df[df['SYMBOL'] == symbol])
         st.plotly_chart(create_chart(analyzed_df, symbol), use_container_width=True)
         
-        st.subheader("Detected Signals")
-        st.dataframe(
-            analyzed_df[['DATE', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'Signal_Type']]
-            .dropna(subset=['Signal_Type']),
-            use_container_width=True
-        )
+        # Optional: Show signals table only if signals exist
+        if not analyzed_df['Signal_Type'].isna().all():
+            st.subheader("Signals")
+            st.dataframe(
+                analyzed_df[['DATE', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'Signal_Type']]
+                .dropna(subset=['Signal_Type']),
+                hide_index=True
+            )
