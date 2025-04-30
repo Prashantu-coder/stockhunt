@@ -2,11 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
+from urllib.parse import quote
 
-# Google Sheet Configuration
+# Google Sheet Configuration (Updated for your columns)
 SHEET_ID = "1_pmG2oMSEk8VciNm2uqcshyvPPZBbjf-oKV59chgT1w"
 SHEET_NAME = "Daily Price"
-GSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+GSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={quote(SHEET_NAME)}"
 
 # Signal Detection Parameters
 VOLUME_THRESHOLD_MULTIPLIER = 1.5  # Times average volume
@@ -18,72 +19,55 @@ def detect_signals(df):
     df = df.copy()
     df['Signal'] = np.nan
     df['Signal_Type'] = np.nan
+    df['Body'] = abs(df['CLOSE'] - df['OPEN'])
+    df['Upper_Wick'] = df['HIGH'] - df[['OPEN', 'CLOSE']].max(axis=1)
+    df['Lower_Wick'] = df[['OPEN', 'CLOSE']].min(axis=1) - df['LOW']
+    avg_volume = df['VOLUME'].rolling(20).mean().fillna(df['VOLUME'].mean())
     
-    # Calculate metrics
-    df['Body'] = abs(df['Close'] - df['Open'])
-    df['Upper_Wick'] = df['High'] - df[['Open', 'Close']].max(axis=1)
-    df['Lower_Wick'] = df[['Open', 'Close']].min(axis=1) - df['Low']
-    avg_volume = df['Volume'].rolling(20).mean().fillna(df['Volume'].mean())
-    
-    # Detect patterns
     for i in range(1, len(df)):
-        # Bullish POR (Breakout with high volume)
-        if (df['Close'].iloc[i] > df['High'].iloc[i-1] * (1 + MIN_POR_MOVE) and
-            df['Volume'].iloc[i] > avg_volume.iloc[i]):
-            df.loc[df.index[i], 'Signal'] = df['High'].iloc[i]
+        # Bullish POR
+        if (df['CLOSE'].iloc[i] > df['HIGH'].iloc[i-1] * (1 + MIN_POR_MOVE) and \
+           (df['VOLUME'].iloc[i] > avg_volume.iloc[i]):
+            df.loc[df.index[i], 'Signal'] = df['HIGH'].iloc[i]
             df.loc[df.index[i], 'Signal_Type'] = 'Bullish POR'
         
-        # Bearish POR (Breakdown with high volume)
-        elif (df['Close'].iloc[i] < df['Low'].iloc[i-1] * (1 - MIN_POR_MOVE) and
-              df['Volume'].iloc[i] > avg_volume.iloc[i]):
-            df.loc[df.index[i], 'Signal'] = df['Low'].iloc[i]
+        # Bearish POR
+        elif (df['CLOSE'].iloc[i] < df['LOW'].iloc[i-1] * (1 - MIN_POR_MOVE)) and \
+             (df['VOLUME'].iloc[i] > avg_volume.iloc[i]):
+            df.loc[df.index[i], 'Signal'] = df['LOW'].iloc[i]
             df.loc[df.index[i], 'Signal_Type'] = 'Bearish POR'
         
-        # Buyers Absorption
-        elif (df['Lower_Wick'].iloc[i] > df['Body'].iloc[i] * WICK_TO_BODY_RATIO and
-              df['Close'].iloc[i] > df['Open'].iloc[i] and
-              df['Volume'].iloc[i] > avg_volume.iloc[i] * VOLUME_THRESHOLD_MULTIPLIER):
-            df.loc[df.index[i], 'Signal'] = df['Low'].iloc[i]
+        # Buyers Absorption (Long lower wick + green candle + high volume)
+        elif (df['Lower_Wick'].iloc[i] > df['Body'].iloc[i] * WICK_TO_BODY_RATIO) and \
+             (df['CLOSE'].iloc[i] > df['OPEN'].iloc[i]) and \
+             (df['VOLUME'].iloc[i] > avg_volume.iloc[i] * VOLUME_THRESHOLD_MULTIPLIER):
+            df.loc[df.index[i], 'Signal'] = df['LOW'].iloc[i]
             df.loc[df.index[i], 'Signal_Type'] = 'Buyers Absorption'
         
-        # Sellers Absorption
-        elif (df['Upper_Wick'].iloc[i] > df['Body'].iloc[i] * WICK_TO_BODY_RATIO and
-              df['Close'].iloc[i] < df['Open'].iloc[i] and
-              df['Volume'].iloc[i] > avg_volume.iloc[i] * VOLUME_THRESHOLD_MULTIPLIER):
-            df.loc[df.index[i], 'Signal'] = df['High'].iloc[i]
+        # Sellers Absorption (Long upper wick + red candle + high volume)
+        elif (df['Upper_Wick'].iloc[i] > df['Body'].iloc[i] * WICK_TO_BODY_RATIO) and \
+             (df['CLOSE'].iloc[i] < df['OPEN'].iloc[i]) and \
+             (df['VOLUME'].iloc[i] > avg_volume.iloc[i] * VOLUME_THRESHOLD_MULTIPLIER):
+            df.loc[df.index[i], 'Signal'] = df['HIGH'].iloc[i]
             df.loc[df.index[i], 'Signal_Type'] = 'Sellers Absorption'
-        
-        # Aggressive Buyers
-        elif (df['Close'].iloc[i] > df['Open'].iloc[i] and
-              df['Body'].iloc[i] > df['Upper_Wick'].iloc[i] and
-              df['Volume'].iloc[i] > avg_volume.iloc[i] * VOLUME_THRESHOLD_MULTIPLIER):
-            df.loc[df.index[i], 'Signal'] = df['Close'].iloc[i]
-            df.loc[df.index[i], 'Signal_Type'] = 'Aggressive Buyer'
-        
-        # Aggressive Sellers
-        elif (df['Close'].iloc[i] < df['Open'].iloc[i] and
-              df['Body'].iloc[i] > df['Lower_Wick'].iloc[i] and
-              df['Volume'].iloc[i] > avg_volume.iloc[i] * VOLUME_THRESHOLD_MULTIPLIER):
-            df.loc[df.index[i], 'Signal'] = df['Close'].iloc[i]
-            df.loc[df.index[i], 'Signal_Type'] = 'Aggressive Seller'
     
-    # Detect POI (Points of Interest) - Swing Highs/Lows
-    df['Swing_High'] = (df['High'] > df['High'].shift(1)) & (df['High'] > df['High'].shift(-1))
-    df['Swing_Low'] = (df['Low'] < df['Low'].shift(1)) & (df['Low'] < df['Low'].shift(-1))
+    # POI Detection (Swing Highs/Lows)
+    df['Swing_High'] = (df['HIGH'] > df['HIGH'].shift(1)) & (df['HIGH'] > df['HIGH'].shift(-1))
+    df['Swing_Low'] = (df['LOW'] < df['LOW'].shift(1)) & (df['LOW'] < df['LOW'].shift(-1))
     
     return df
 
-def create_chart(df, company):
-    """Create interactive Plotly chart with signals"""
+def create_chart(df, symbol):
     fig = go.Figure()
     
-    # Main price line
-    fig.add_trace(go.Scatter(
-        x=df['Date'],
-        y=df['Close'],
-        mode='lines',
-        name='Close Price',
-        line=dict(color='#1f77b4', width=2)
+    # Candlestick chart
+    fig.add_trace(go.Candlestick(
+        x=df['DATE'],
+        open=df['OPEN'],
+        high=df['HIGH'],
+        low=df['LOW'],
+        close=df['CLOSE'],
+        name='Price'
     ))
     
     # Add signals
@@ -91,95 +75,79 @@ def create_chart(df, company):
         'Bullish POR': 'green',
         'Bearish POR': 'red',
         'Buyers Absorption': 'blue',
-        'Sellers Absorption': 'orange',
-        'Aggressive Buyer': 'lime',
-        'Aggressive Seller': 'crimson'
+        'Sellers Absorption': 'orange'
     }
     
-    for signal_type, color in signal_colors.items():
-        signal_df = df[df['Signal_Type'] == signal_type]
-        if not signal_df.empty:
+    for sig_type, color in signal_colors.items():
+        sig_df = df[df['Signal_Type'] == sig_type]
+        if not sig_df.empty:
             fig.add_trace(go.Scatter(
-                x=signal_df['Date'],
-                y=signal_df['Signal'],
+                x=sig_df['DATE'],
+                y=sig_df['Signal'],
                 mode='markers',
-                name=signal_type,
-                marker=dict(color=color, size=10, symbol='diamond'),
-                hovertemplate=f'{signal_type}<br>Price: %{{y}}<extra></extra>'
+                name=sig_type,
+                marker=dict(color=color, size=12, symbol='diamond'),
+                hovertemplate=f'{sig_type}<br>Price: %{{y}}<extra></extra>'
             ))
     
     # Add POI markers
-    poi_df = df[df['Swing_High'] | df['Swing_Low']]
-    for _, row in poi_df.iterrows():
-        if row['Swing_High']:
-            fig.add_annotation(
-                x=row['Date'],
-                y=row['High'],
-                text="POI (Bear)",
-                showarrow=True,
-                arrowhead=1,
-                ax=0,
-                ay=-40,
-                bgcolor="red"
-            )
-        else:
-            fig.add_annotation(
-                x=row['Date'],
-                y=row['Low'],
-                text="POI (Bull)",
-                showarrow=True,
-                arrowhead=1,
-                ax=0,
-                ay=40,
-                bgcolor="green"
-            )
+    for _, row in df[df['Swing_High']].iterrows():
+        fig.add_annotation(
+            x=row['DATE'],
+            y=row['HIGH'],
+            text="POI (Bear)",
+            showarrow=True,
+            arrowhead=1,
+            bgcolor="red"
+        )
+    
+    for _, row in df[df['Swing_Low']].iterrows():
+        fig.add_annotation(
+            x=row['DATE'],
+            y=row['LOW'],
+            text="POI (Bull)",
+            showarrow=True,
+            arrowhead=1,
+            bgcolor="green"
+        )
     
     fig.update_layout(
-        title=f"{company} - Smart Money Analysis",
-        xaxis_title="Date",
-        yaxis_title="Price",
-        hovermode="x unified",
-        showlegend=True
+        title=f"{symbol} - Smart Money Analysis",
+        xaxis_rangeslider_visible=False,
+        hovermode="x unified"
     )
     
     return fig
 
 # Streamlit App
-st.set_page_config(layout="wide", page_title="Smart Money Dashboard")
-st.title("📊 Smart Money Analysis Dashboard")
+st.set_page_config(layout="wide")
+st.title("📊 Smart Money Dashboard")
 
-# Load data
 @st.cache_data(ttl=3600)
 def load_data():
-    df = pd.read_csv(GSHEET_URL)
-    df['Date'] = pd.to_datetime(df['Date'])
-    return df.sort_values('Date')
+    try:
+        df = pd.read_csv(GSHEET_URL)
+        df['DATE'] = pd.to_datetime(df['DATE'])
+        return df.sort_values('DATE')
+    except Exception as e:
+        st.error(f"Data loading error: {str(e)}")
+        return pd.DataFrame()
 
-try:
-    full_df = load_data()
+df = load_data()
+
+if not df.empty:
+    symbol = st.selectbox("Select Symbol", sorted(df['SYMBOL'].unique()))
     
-    # Company search
-    company = st.text_input("🔍 Search Company", placeholder="Enter company name (e.g., NTC)")
-    
-    if company:
-        # Filter data
-        company_df = full_df[full_df['Company'].str.strip().str.lower() == company.strip().lower()]
+    if symbol:
+        symbol_df = df[df['SYMBOL'] == symbol].copy()
+        analyzed_df = detect_signals(symbol_df)
         
-        if company_df.empty:
-            st.warning(f"No data found for '{company}'")
-        else:
-            # Detect signals
-            analyzed_df = detect_signals(company_df)
-            
-            # Display chart
-            st.plotly_chart(create_chart(analyzed_df, company), use_container_width=True)
-            
-            # Show raw data with signals
-            st.subheader("Signal Details")
-            st.dataframe(
-                analyzed_df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume', 'Signal_Type']]
-                .dropna(subset=['Signal_Type']),
-                use_container_width=True
-            )
-except Exception as e:
-    st.error(f"Error loading data: {str(e)}")
+        st.plotly_chart(create_chart(analyzed_df, symbol), use_container_width=True)
+        
+        st.subheader("Detected Signals")
+        st.dataframe(
+            analyzed_df[
+                ['DATE', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOLUME', 'Signal_Type']
+            ].dropna(subset=['Signal_Type']),
+            use_container_width=True
+        )
