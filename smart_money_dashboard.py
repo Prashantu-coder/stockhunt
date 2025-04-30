@@ -3,148 +3,94 @@ import streamlit as st
 import plotly.graph_objects as go
 from urllib.parse import quote
 
-# --- App Configuration ---
+# --- Basic Setup ---
 st.set_page_config(layout="wide")
-st.title("📈 Smart Money Signals Dashboard")
+st.title("💎 SMART MONEY SIGNALS")
 
-# --- Data Loading ---
+# --- Load Data ---
 SHEET_ID = "1_pmG2oMSEk8VciNm2uqcshyvPPZBbjf-oKV59chgT1w"
 SHEET_NAME = "Daily Price"
 GSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={quote(SHEET_NAME)}"
 
-@st.cache_data(ttl=3600)
-def load_data():
-    try:
-        df = pd.read_csv(GSHEET_URL)
-        # Standardize column names
-        df.columns = [col.strip().lower() for col in df.columns]
-        # Convert data types
-        df['date'] = pd.to_datetime(df['date'], errors='coerce')
-        for col in ['open', 'high', 'low', 'close', 'volume']:
-            df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce')
-        return df.dropna(subset=['date', 'symbol']).sort_values('date')
-    except Exception as e:
-        st.error(f"Data loading failed: {str(e)}")
-        return pd.DataFrame()
+try:
+    df = pd.read_csv(GSHEET_URL)
+    df.columns = [col.lower().strip() for col in df.columns]
+    df['date'] = pd.to_datetime(df['date'])
+    for col in ['open', 'high', 'low', 'close', 'volume']:
+        df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''))
+    df = df.dropna()
+except:
+    st.error("DATA LOADING FAILED! CHECK YOUR SHEET.")
+    st.stop()
 
-# --- Signal Detection ---
-def detect_signals(df):
-    if df.empty:
-        return df
-        
+# --- Simple Signal Detection ---
+def find_signals(df):
     df = df.copy()
     df['signal'] = ''
-    df['avg_volume'] = df['volume'].rolling(20, min_periods=1).mean()
+    avg_vol = df['volume'].rolling(20).mean()
     
     for i in range(1, len(df)):
-        row = df.iloc[i]
+        current = df.iloc[i]
         prev = df.iloc[i-1]
-        body = abs(row['close'] - row['open'])
-        range_ = row['high'] - row['low']
         
-        # Breakout Signals
-        if row['high'] > df['high'].iloc[max(0,i-3):i].max() and row['volume'] > row['avg_volume']:
-            df.at[i, 'signal'] = 'Bullish POR'
-        elif row['low'] < df['low'].iloc[max(0,i-3):i].min() and row['volume'] > row['avg_volume']:
-            df.at[i, 'signal'] = 'Bearish POR'
+        # BIG GREEN CANDLE
+        if current['close'] > current['open'] and current['volume'] > avg_vol.iloc[i]*1.5:
+            df.at[i, 'signal'] = 'BUYER'
         
-        # Aggressive Participants
-        elif (row['close'] > row['open'] and 
-              row['close'] >= row['high'] - 0.1*range_ and 
-              row['volume'] > row['avg_volume']*1.5):
-            df.at[i, 'signal'] = 'Aggressive Buyer'
-        elif (row['open'] > row['close'] and 
-              row['close'] <= row['low'] + 0.1*range_ and 
-              row['volume'] > row['avg_volume']*1.5):
-            df.at[i, 'signal'] = 'Aggressive Seller'
-        
-        # Absorption Patterns
-        elif (row['high'] > prev['high'] and 
-              row['close'] < prev['close'] and 
-              (row['high'] - row['close']) > body and 
-              row['volume'] > row['avg_volume']):
-            df.at[i, 'signal'] = 'Buyer Absorption'
-        elif (row['low'] < prev['low'] and 
-              row['close'] > prev['close'] and 
-              (row['close'] - row['low']) > body and 
-              row['volume'] > row['avg_volume']):
-            df.at[i, 'signal'] = 'Seller Absorption'
+        # BIG RED CANDLE
+        elif current['open'] > current['close'] and current['volume'] > avg_vol.iloc[i]*1.5:
+            df.at[i, 'signal'] = 'SELLER'
     
     return df
 
-# --- Visualization ---
-def create_chart(df, symbol):
-    fig = go.Figure()
-    
-    # Price line
+# --- BIG VISIBLE CHART ---
+symbol = st.selectbox("SELECT STOCK", df['symbol'].unique())
+stock_df = df[df['symbol'] == symbol].copy()
+signals_df = find_signals(stock_df)
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(
+    x=signals_df['date'],
+    y=signals_df['close'],
+    mode='lines+markers',
+    name=f'{symbol} PRICE',
+    line=dict(color='black', width=3)
+))
+
+# GIANT MARKERS
+signals = signals_df[signals_df['signal'] != '']
+if not signals.empty:
     fig.add_trace(go.Scatter(
-        x=df['date'],
-        y=df['close'],
-        mode='lines',
-        name=f'{symbol} Price',
-        line=dict(color='#3498db', width=2)
+        x=signals['date'],
+        y=signals['close'],
+        mode='markers',
+        name='SIGNALS',
+        marker=dict(
+            color=['green' if s == 'BUYER' else 'red' for s in signals['signal']],
+            size=15,
+            symbol='diamond',
+            line=dict(width=2, color='white')
     ))
-    
-    # Signal markers
-    signals = df[df['signal'] != '']
-    if not signals.empty:
-        fig.add_trace(go.Scatter(
-            x=signals['date'],
-            y=signals['close'],
-            mode='markers',
-            name='Signals',
-            marker=dict(
-                color='red',
-                size=10,
-                symbol='diamond',
-                line=dict(width=1, color='white')
-            ),
-            text=signals['signal'],
-            hovertemplate="%{text}<br>Date: %{x}<br>Price: %{y}"
-        ))
-    
-    fig.update_layout(
-        title=f"{symbol} Price with Signals",
-        xaxis_title="Date",
-        yaxis_title="Price",
-        hovermode="x unified"
+
+fig.update_layout(
+    title=f"🚨 {symbol} SIGNALS 🚨",
+    height=600,
+    font=dict(size=18)
+st.plotly_chart(fig, use_container_width=True)
+
+# --- SIMPLE TABLE ---
+if not signals.empty:
+    st.subheader("🔥 DETECTED SIGNALS")
+    st.dataframe(
+        signals[['date', 'close', 'volume', 'signal']],
+        column_config={
+            "date": "DATE",
+            "close": "PRICE",
+            "volume": "VOLUME",
+            "signal": "SIGNAL"
+        },
+        hide_index=True,
+        use_container_width=True
     )
-    return fig
-
-# --- Main App ---
-df = load_data()
-
-if not df.empty:
-    # Symbol selection
-    symbol = st.selectbox("Select Symbol", sorted(df['symbol'].astype(str).unique()))
-    
-    if symbol:
-        # Process data
-        symbol_df = df[df['symbol'] == symbol].copy()
-        analyzed_df = detect_signals(symbol_df)
-        
-        # Display chart
-        st.plotly_chart(create_chart(analyzed_df, symbol), use_container_width=True)
-        
-        # Display signals table - THIS IS THE CRUCIAL FIX
-        signals = analyzed_df[analyzed_df['signal'] != ''][['date', 'open', 'high', 'low', 'close', 'volume', 'signal']]
-        if not signals.empty:
-            st.subheader("Detected Signals")
-            st.dataframe(
-                signals.sort_values('date', ascending=False),
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "date": "Date",
-                    "open": "Open",
-                    "high": "High",
-                    "low": "Low", 
-                    "close": "Close",
-                    "volume": "Volume",
-                    "signal": "Signal Type"
-                }
-            )
-        else:
-            st.warning("No signals detected for this symbol")
 else:
-    st.error("No data loaded. Please check your Google Sheet settings.")
+    st.warning("NO SIGNALS FOUND FOR THIS STOCK")
