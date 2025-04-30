@@ -74,7 +74,7 @@ if uploaded_file:
                     name=display_name,
                     marker=dict(
                         size=10,
-                        symbol='',  # You can change marker shape if you want
+                        symbol='square',  # You can change marker shape if you want
                         line=dict(width=1),
                     ),
                     text=[display_name]*len(subset),
