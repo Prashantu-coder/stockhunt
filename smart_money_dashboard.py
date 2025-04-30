@@ -3,11 +3,11 @@ import streamlit as st
 import plotly.graph_objects as go
 from urllib.parse import quote
 
-# --- Simple Configuration ---
+# --- App Setup ---
 st.set_page_config(layout="wide")
-st.title("Smart Money Signals")
+st.title("💰 Smart Money Signals Dashboard")
 
-# --- Clean Data Loading ---
+# --- Data Loading ---
 SHEET_ID = "1_pmG2oMSEk8VciNm2uqcshyvPPZBbjf-oKV59chgT1w"
 SHEET_NAME = "Daily Price"
 GSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={quote(SHEET_NAME)}"
@@ -16,17 +16,15 @@ GSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out
 def load_data():
     try:
         df = pd.read_csv(GSHEET_URL)
-        
         # Standardize column names
         df.columns = [col.strip().lower() for col in df.columns]
-        
-        # Convert and clean data
+        # Convert data types
         df['date'] = pd.to_datetime(df['date'], errors='coerce')
         for col in ['open', 'high', 'low', 'close', 'volume']:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce')
-        
         return df.dropna(subset=['date', 'symbol']).sort_values('date')
-    except:
+    except Exception as e:
+        st.error(f"Data loading failed: {str(e)}")
         return pd.DataFrame()
 
 # --- Signal Detection ---
@@ -41,7 +39,7 @@ def detect_signals(df):
         body = abs(row['close'] - row['open'])
         range_ = row['high'] - row['low']
         
-        # Breakouts
+        # Breakout Signals
         if row['high'] > df['high'].iloc[max(0,i-3):i].max() and row['volume'] > row['avg_volume']:
             df.at[i, 'signal'] = 'Bullish POR'
         elif row['low'] < df['low'].iloc[max(0,i-3):i].min() and row['volume'] > row['avg_volume']:
@@ -53,7 +51,7 @@ def detect_signals(df):
         elif (row['open'] > row['close'] and row['close'] <= row['low'] + 0.1*range_ and row['volume'] > row['avg_volume']*1.5):
             df.at[i, 'signal'] = 'Aggressive Seller'
         
-        # Absorption
+        # Absorption Patterns
         elif (row['high'] > prev['high'] and row['close'] < prev['close'] and (row['high'] - row['close']) > body and row['volume'] > row['avg_volume']):
             df.at[i, 'signal'] = 'Buyer Absorption'
         elif (row['low'] < prev['low'] and row['close'] > prev['close'] and (row['close'] - row['low']) > body and row['volume'] > row['avg_volume']):
@@ -61,7 +59,7 @@ def detect_signals(df):
     
     return df
 
-# --- Clean Visualization ---
+# --- Enhanced Visualization ---
 def create_chart(df, symbol):
     fig = go.Figure()
     
@@ -70,54 +68,75 @@ def create_chart(df, symbol):
         x=df['date'],
         y=df['close'],
         mode='lines',
-        name='Price',
-        line=dict(color='blue', width=2)
+        name=f'{symbol} Price',
+        line=dict(color='#2c3e50', width=2),
+        hovertemplate="Date: %{x}<br>Price: %{y}<extra></extra>"
     ))
     
-    # Signals
-    signals = df[df['signal'] != '']
-    if not signals.empty:
-        fig.add_trace(go.Scatter(
-            x=signals['date'],
-            y=signals['close'],
-            mode='markers',
-            name='Signals',
-            marker=dict(
-                color='red',
-                size=10,
-                symbol='triangle-up',
-                line=dict(width=1, color='black')
-            ),
-            text=signals['signal'],
-            hovertemplate="%{text}<br>Price: %{y}"
-        ))
+    # Signal markers
+    signal_colors = {
+        'Bullish POR': '#27ae60',
+        'Bearish POR': '#e74c3c',
+        'Aggressive Buyer': '#2ecc71',
+        'Aggressive Seller': '#c0392b',
+        'Buyer Absorption': '#3498db',
+        'Seller Absorption': '#e67e22'
+    }
+    
+    for signal, color in signal_colors.items():
+        signal_df = df[df['signal'] == signal]
+        if not signal_df.empty:
+            fig.add_trace(go.Scatter(
+                x=signal_df['date'],
+                y=signal_df['close'],
+                mode='markers',
+                name=signal,
+                marker=dict(
+                    color=color,
+                    size=10,
+                    symbol='diamond' if 'POR' in signal else 'circle',
+                    line=dict(width=1, color='white')
+                ),
+                hovertemplate=f"{signal}<br>Date: %{{x}}<br>Price: %{{y}}<extra></extra>"
+            ))
     
     fig.update_layout(
-        title=f"{symbol} Price with Signals",
+        title=f"{symbol} - Smart Money Signals",
         xaxis_title="Date",
-        yaxis_title="Price"
+        yaxis_title="Price",
+        hovermode="x unified",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
+    
     return fig
 
-# --- App Execution ---
+# --- Main App ---
 df = load_data()
 
 if not df.empty:
-    symbol = st.selectbox("Select Symbol", sorted(df['symbol'].unique()))
+    # Symbol selection
+    symbol = st.selectbox("Select Symbol", sorted(df['symbol'].astype(str).unique()))
     
     if symbol:
-        analyzed_df = detect_signals(df[df['symbol'] == symbol])
+        # Filter and analyze data
+        symbol_df = df[df['symbol'] == symbol].copy()
+        analyzed_df = detect_signals(symbol_df)
+        
+        # Display chart
         st.plotly_chart(create_chart(analyzed_df, symbol), use_container_width=True)
         
-        # Show signals table if any exist
-        signals = analyzed_df[analyzed_df['signal'] != '']
-        if not signals.empty:
-            st.write("Detected Signals:")
+        # Display signals table
+        signals_df = analyzed_df[analyzed_df['signal'] != '']
+        if not signals_df.empty:
+            st.subheader("📋 Detected Signals")
             st.dataframe(
-                signals[['date', 'open', 'high', 'low', 'close', 'volume', 'signal']],
-                use_container_width=True
+                signals_df[['date', 'open', 'high', 'low', 'close', 'volume', 'signal']]
+                .sort_values('date', ascending=False),
+                use_container_width=True,
+                hide_index=True
             )
         else:
             st.info("No signals detected for this symbol")
 else:
-    st.error("Failed to load data. Please check your Google Sheet.")
+    st.error("Failed to load data. Please check your Google Sheet configuration.")
