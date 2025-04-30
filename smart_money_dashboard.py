@@ -121,7 +121,7 @@ if uploaded_file:
 
         fig.update_layout(
             height=800,
-            plot_bgcolor="white",
+            plot_bgcolor="black",
             legend=dict(font=dict(size=12)),
             title='Smart Money Signals Chart'
         )
