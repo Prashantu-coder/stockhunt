@@ -70,13 +70,13 @@ if not signals.empty:
             size=15,
             symbol='diamond',
             line=dict(width=2, color='white')
-    ))
+    )))
 
 fig.update_layout(
     title=f"🚨 {symbol} SIGNALS 🚨",
     height=600,
     font=dict(size=18)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True))
 
 # --- SIMPLE TABLE ---
 if not signals.empty:
