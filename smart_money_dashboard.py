@@ -134,7 +134,7 @@ if uploaded_file:
         '💣': '💣 Bearish POR',
         '🐂': '🐂 Bullish POI',
         '🐻': '🐻 Bearish POI',
-        '📉':'📉 Bullish weak legs'
+        '📉':'📉 Bullish weak legs',
         '📈':'📈 Bearish weak legs'
         }
 
