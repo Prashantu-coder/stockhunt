@@ -16,138 +16,39 @@ if uploaded_file:
     df.columns = [col.lower() for col in df.columns]
     required_cols = {'date', 'open', 'high', 'low', 'close', 'volume'}
 
-    if required_cols.issubset(set(df.columns)):
+    if required_cols.issubset(df.columns):
         df['date'] = pd.to_datetime(df['date'])
         df.sort_values('date', inplace=True)
         df.reset_index(drop=True, inplace=True)
 
-        # --- Signal Tagging ---
-        df['tag'] = ''
-        avg_volume = df['volume'].rolling(window=10).mean()
+        # --- Signal Tagging Logic (same as your code, skipped here for brevity) ---
+        # Add your tagging logic here
 
-        for i in range(3, len(df)-2):
-            row = df.iloc[i]
-            prev = df.iloc[i - 1]
-            next1 = df.iloc[i + 1]
-            next2 = df.iloc[i + 2]
-            body = abs(row['close'] - row['open'])
-            prev_body = abs(prev['close'] - prev['open'])
-
-            # Refined signals with stricter filters
-            if (
-                row['close'] > row['open']
-                and row['close'] >= row['high'] - (row['high'] - row['low']) * 0.1
-                and row['volume'] > avg_volume[i] * 1
-                and body > prev_body
-            ):
-                df.at[i, 'tag'] = '🟢'
-            elif (
-                row['open'] > row['close']
-                and row['close'] <= row['low'] + (row['high'] - row['low']) * 0.1
-                and row['volume'] > avg_volume[i] * 1.5
-                and body > prev_body
-            ):
-                df.at[i, 'tag'] = '🔴'
-            # Updated Buyer Absorption ⛔
-            elif (
-                row['high'] > prev['high']
-                and row['close'] < prev['close']
-                and (row['high'] - row['close']) > body
-                and row['volume'] > avg_volume[i] * 1.5
-                and next1['close'] < row['open']
-                and next2['close'] < row['open']
-            ):
-                df.at[i, 'tag'] = '⛔'
-
-            # Updated Seller Absorption 🚀
-            elif (
-                row['low'] < prev['low']
-                and row['close'] > prev['close']
-                and (row['close'] - row['low']) > body
-                and row['volume'] > avg_volume[i] * 1.5
-                and next1['close'] > row['close']
-                and next2['close'] > row['close']
-            ):
-                df.at[i, 'tag'] = '🚀'
-            # Detecting buyer absorption across multiple previous bullish candles (loop until condition is met)
-            elif (
-                row['close'] < df.iloc[i - 1]['open']  # Close below the previous bullish candle's open
-                and row['volume'] > avg_volume[i] * 1.5
-                and row['high'] > df.iloc[i - 1]['high']  # Current high exceeds previous bullish candle's high
-                and next1['close'] < row['open']  # Check if next candle closes below current open
-            ):
-                df.at[i, 'tag'] = '⛔'  # Mark as Buyer Absorption
-
-            # Detecting seller absorption across multiple previous bearish candles (loop until condition is met)
-            elif (
-                row['close'] > df.iloc[i - 1]['open']  # Close above the previous bearish candle's open
-                and row['volume'] > avg_volume[i] * 1.5
-                and row['low'] < df.iloc[i - 1]['low']  # Current low is below previous bearish candle's low
-                and next1['close'] > row['close']  # Check if next candle closes above current close
-            ):
-                df.at[i, 'tag'] = '🚀'  # Mark as Seller Absorption
-
-            elif (
-                row['high'] > max(df['high'].iloc[i - 3:i])
-                and row['volume'] > avg_volume[i] * 1.8
-            ):
-                if not (df['tag'].iloc[i - 3:i] == '💥').any():
-                    df.at[i, 'tag'] = '💥'
-            elif (
-                row['low'] < min(df['low'].iloc[i - 3:i])
-                and row['volume'] > avg_volume[i] * 1.8
-            ):
-                if not (df['tag'].iloc[i - 3:i] == '💣').any():
-                    df.at[i, 'tag'] = '💣'
-            elif (
-                row['close'] > row['open']
-                and body > (row['high'] - row['low']) * 0.7
-                and row['volume'] > avg_volume[i] * 2
-            ):
-                df.at[i, 'tag'] = '🐂'
-            elif (
-                row['open'] > row['close']
-                and body > (row['high'] - row['low']) * 0.7
-                and row['volume'] > avg_volume[i] * 2
-            ):
-                df.at[i, 'tag'] = '🐻'
-            elif (
-                row['close'] > row['open']
-                and body < 0.3 * prev_body
-                and row['volume'] < avg_volume[i] * 1
-            ):
-                df.at[i, 'tag'] = '📉'   
-            elif (
-                row['open'] > row['close']
-                and body < 0.3 * prev_body
-                and row['volume'] < avg_volume[i] * 1.5
-            ):
-                df.at[i, 'tag'] = '📈'
-
-        # --- Filter tags ---
+        # --- Tag selection UI ---
         tags_available = df['tag'].unique()
         tags_available = [tag for tag in tags_available if tag]
 
-        selected_tags = st.multiselect(
-            "Select Signal(s) to View",
-            options=tags_available,
-            default=tags_available
-        )
+        with st.container():
+            st.subheader("📌 Select Signal(s) to View")
+            selected_tags = st.multiselect(
+                "Choose from available signals",
+                options=tags_available,
+                default=tags_available,
+                key="tag_selector"
+            )
 
         # --- Plotting Chart ---
         fig = go.Figure()
 
-        # Create the chart with dynamic X-axis based on price
         fig.add_trace(go.Scatter(
             x=df['date'], y=df['close'],
             mode='lines',
             name='Close Price',
             line=dict(color='lightblue', width=2),
-            hovertext=df['close'],  # Show price on hover
-            hoverinfo="x+y+text"  # Correct hover info format
+            hovertext=df['close'],
+            hoverinfo="x+y+text"
         ))
 
-        # Define full tag names
         tag_labels = {
             '🟢': '🟢 Aggressive Buyers',
             '🔴': '🔴 Aggressive Sellers',
@@ -157,18 +58,17 @@ if uploaded_file:
             '💣': '💣 Bearish POR',
             '🐂': '🐂 Bullish POI',
             '🐻': '🐻 Bearish POI',
-            '📉': '📉 Bullish weak legs',
-            '📈': '📈 Bearish weak legs'
+            '📉': '📉 Bullish Weak Legs',
+            '📈': '📈 Bearish Weak Legs'
         }
 
         for tag in selected_tags:
             subset = df[df['tag'] == tag]
-
             fig.add_trace(go.Scatter(
                 x=subset['date'],
                 y=subset['close'],
                 mode='markers+text',
-                name=tag_labels.get(tag, tag),  # Show full name in legend
+                name=tag_labels.get(tag, tag),
                 text=[tag]*len(subset),
                 textposition='top center',
                 textfont=dict(size=20),
@@ -189,41 +89,12 @@ if uploaded_file:
             plot_bgcolor="black",
             paper_bgcolor="black",
             font_color="white",
-            legend=dict(font=dict(size=14)),
+            legend=dict(font=dict(size=14), orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             title="Smart Money Signals Chart",
             xaxis=dict(
                 title="Date",
-                tickmode="array",
-                tickvals=df['date'][::int(len(df['date']) / 10)],  # Reduce number of ticks
-                ticktext=[f"{date.strftime('%Y-%m-%d')}" for date in df['date'][::int(len(df['date']) / 10)]],
-                tickangle=-45,  # Rotate tick labels for better readability
-                showgrid=False
-            ),
-            yaxis=dict(
-                title="Price",
-                showgrid=True,
-                gridcolor="gray",
-                zeroline=True,
-                zerolinecolor="gray",
-                ticks="outside",
-                ticklen=5,
-                tickwidth=2
-            ),
-            margin=dict(l=50, r=50, b=150, t=50),  # Make space for x-axis labels
-        )
-        fig.update_layout(
-            height=800,
-            plot_bgcolor="black",
-            paper_bgcolor="black",
-            font_color="white",
-            legend=dict(font=dict(size=14)),
-            title="Smart Money Signals Chart",
-            xaxis=dict(
-                title="Date",
-                tickmode="array",
-                tickvals=df['date'][::int(len(df['date']) / 10)],  # Reduce number of ticks
-                ticktext=[f"{date.strftime('%Y-%m-%d')}" for date in df['date'][::int(len(df['date']) / 10)]],
-                tickangle=-45,  # Rotate tick labels for better readability
+                tickmode="auto",
+                tickangle=-45,
                 showgrid=False
             ),
             yaxis=dict(
@@ -234,20 +105,23 @@ if uploaded_file:
                 ticks="outside",
                 ticklen=5,
                 tickwidth=2,
-                dtick=20  # Set the y-axis interval to 20
+                dtick=20
             ),
-            margin=dict(l=50, r=50, b=150, t=50),  # Make space for x-axis labels
+            margin=dict(l=50, r=50, b=150, t=50)
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- Table for last 1 month signals ---
-        st.subheader("📋 Recent 1 Month Signal Observed")
+        # --- Table of last 1-month signals ---
+        st.subheader("📋 Signals from the Last 1 Month")
         last_date = df['date'].max()
         one_month_ago = last_date - timedelta(days=30)
         recent_df = df[(df['date'] >= one_month_ago) & (df['tag'] != '')]
 
-        st.dataframe(recent_df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].sort_values('date', ascending=False))
+        st.dataframe(
+            recent_df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].sort_values('date', ascending=False),
+            use_container_width=True
+        )
 
         # --- Download Excel ---
         output = io.BytesIO()
