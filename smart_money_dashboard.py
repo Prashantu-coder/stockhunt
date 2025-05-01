@@ -228,8 +228,7 @@ if uploaded_file:
             ),
             yaxis=dict(
                 title="Price",
-                showgrid=True,
-                gridcolor="gray",
+                showgrid=False,
                 zeroline=True,
                 zerolinecolor="gray",
                 ticks="outside",
