@@ -46,11 +46,13 @@ if uploaded_file:
                 and body > prev_body
             ):
                 df.at[i, 'tag'] = '🔴'
-            elif (
+            if (
                 row['high'] > prev['high']
                 and row['close'] < prev['close']
                 and (row['high'] - row['close']) > body
                 and row['volume'] > avg_volume[i] * 1.5
+                and next['close'] < row['close']
+                and next['close'] < row['close']
             ):
                 df.at[i, 'tag'] = '⛔'
             elif (
@@ -58,6 +60,8 @@ if uploaded_file:
                 and row['close'] > prev['close']
                 and (row['close'] - row['low']) > body
                 and row['volume'] > avg_volume[i] * 1.5
+                and next['close'] > row['close']
+                and next['close'] > row['close']
             ):
                 df.at[i, 'tag'] = '🚀'
             elif (
