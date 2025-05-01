@@ -104,6 +104,18 @@ if uploaded_file:
             line=dict(color='lightblue')
         ))
 
+        # Define full tag names
+        tag_labels = {
+         '🟢': '🟢 Aggressive Buyers',
+        '🔴': '🔴 Aggressive Sellers',
+        '⛔': '⛔ Buyer Absorption',
+        '🚀': '🚀 Seller Absorption',
+        '💥': '💥 Bullish POR',
+        '💣': '💣 Bearish POR',
+        '🐂': '🐂 Bullish POI',
+        '🐻': '🐻 Bearish POI'
+        }
+
         for tag in selected_tags:
             subset = df[df['tag'] == tag]
 
@@ -111,7 +123,7 @@ if uploaded_file:
                 x=subset['date'],
                 y=subset['close'],
                 mode='markers',
-                name=tag,
+                name=tag_labels.get(tag, tag),  # Show full name in legend
                 marker=dict(size=14, symbol="circle", color='white'),
                 text=[tag]*len(subset),  # Only emoji shown as hover text
                 hoverinfo='text'
