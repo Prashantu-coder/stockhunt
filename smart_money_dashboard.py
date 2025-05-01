@@ -35,7 +35,7 @@ if uploaded_file:
             if (
                 row['close'] > row['open']
                 and row['close'] >= row['high'] - (row['high'] - row['low']) * 0.1
-                and row['volume'] > avg_volume[i] * 1.5
+                and row['volume'] > avg_volume[i] * 1
                 and body > prev_body
             ):
                 df.at[i, 'tag'] = '🟢'
@@ -84,6 +84,22 @@ if uploaded_file:
                 and row['volume'] > avg_volume[i] * 2
             ):
                 df.at[i, 'tag'] = '🐻'
+            elif (
+                row['close'] > row['open']
+                and body < 0.3 * prev_body
+                and row['volume'] < avg_volume[i] * 1
+            ):
+                df.at[i, 'tag'] = '📉'   
+            elif (
+                row['open'] > row['close']
+                and body < 0.3 * prev_body
+                and row['volume'] < avg_volume[i] * 1.5
+            ):
+                df.at[i, 'tag'] = '📈'
+
+
+            
+               
 
         # --- Filter tags ---
         tags_available = df['tag'].unique()
@@ -113,7 +129,9 @@ if uploaded_file:
         '💥': '💥 Bullish POR',
         '💣': '💣 Bearish POR',
         '🐂': '🐂 Bullish POI',
-        '🐻': '🐻 Bearish POI'
+        '🐻': '🐻 Bearish POI',
+        '📉':'📉 Bullish weak legs'
+        '📈':'📈 Bearish weak legs'
         }
 
         for tag in selected_tags:
