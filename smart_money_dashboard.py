@@ -122,7 +122,7 @@ if uploaded_file:
             fig.add_trace(go.Scatter(
                 x=subset['date'],
                 y=subset['close'],
-                mode='text',
+                mode='markers+text',
                 text=[tag]*len(subset),
                 textposition='top center',
                 textfont=dict(size=20)
