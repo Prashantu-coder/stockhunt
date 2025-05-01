@@ -28,6 +28,8 @@ if uploaded_file:
         for i in range(3, len(df)):
             row = df.iloc[i]
             prev = df.iloc[i - 1]
+            next1 = df.iloc[i + 1]
+            next2 = df.iloc[i + 2]
             body = abs(row['close'] - row['open'])
             prev_body = abs(prev['close'] - prev['open'])
 
@@ -46,22 +48,25 @@ if uploaded_file:
                 and body > prev_body
             ):
                 df.at[i, 'tag'] = '🔴'
-            if (
+            # Updated Buyer Absorption ⛔
+            elif (
                 row['high'] > prev['high']
-                and row['close'] < prev['close']
+                    and row['close'] < prev['close']
                 and (row['high'] - row['close']) > body
                 and row['volume'] > avg_volume[i] * 1.5
-                and next['close'] < row['close']
-                and next['close'] < row['close']
+                and next1['close'] < row['close']
+                and next2['close'] < row['close']
             ):
                 df.at[i, 'tag'] = '⛔'
+
+            # Updated Seller Absorption 🚀
             elif (
                 row['low'] < prev['low']
                 and row['close'] > prev['close']
                 and (row['close'] - row['low']) > body
                 and row['volume'] > avg_volume[i] * 1.5
-                and next['close'] > row['close']
-                and next['close'] > row['close']
+                and next1['close'] > row['close']
+                and next2['close'] > row['close']
             ):
                 df.at[i, 'tag'] = '🚀'
             elif (
