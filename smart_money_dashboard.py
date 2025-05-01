@@ -211,6 +211,34 @@ if uploaded_file:
             ),
             margin=dict(l=50, r=50, b=150, t=50),  # Make space for x-axis labels
         )
+        fig.update_layout(
+            height=800,
+            plot_bgcolor="black",
+            paper_bgcolor="black",
+            font_color="white",
+            legend=dict(font=dict(size=14)),
+            title="Smart Money Signals Chart",
+            xaxis=dict(
+                title="Date",
+                tickmode="array",
+                tickvals=df['date'][::int(len(df['date']) / 10)],  # Reduce number of ticks
+                ticktext=[f"{date.strftime('%Y-%m-%d')}" for date in df['date'][::int(len(df['date']) / 10)]],
+                tickangle=-45,  # Rotate tick labels for better readability
+                showgrid=False
+            ),
+            yaxis=dict(
+                title="Price",
+                showgrid=True,
+                gridcolor="gray",
+                zeroline=True,
+                zerolinecolor="gray",
+                ticks="outside",
+                ticklen=5,
+                tickwidth=2,
+                dtick=20  # Set the y-axis interval to 20
+            ),
+            margin=dict(l=50, r=50, b=150, t=50),  # Make space for x-axis labels
+        )
 
         st.plotly_chart(fig, use_container_width=True)
 
