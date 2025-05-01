@@ -193,7 +193,16 @@ if uploaded_file:
             paper_bgcolor="black",
             font_color="white",
             legend=dict(font=dict(size=12)),
-            title="Smart Money Signals Chart"
+            title="Smart Money Signals Chart",
+            xaxis=dict(
+                title="Price",
+                tickmode="array",
+                tickvals=df['close'],
+                ticktext=[f"${close}" for close in df['close']],  # Dynamically set price tick labels
+            ),
+            yaxis=dict(
+                title="Price"
+            ),
         )
 
         st.plotly_chart(fig, use_container_width=True)
