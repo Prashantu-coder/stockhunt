@@ -124,19 +124,19 @@ if uploaded_file:
                 y=subset['close'],
                 mode='markers+text',
                 name=tag_labels.get(tag, tag),  # Show full name in legend
-                text=[
-                    f"📅 Date: {d.strftime('%Y-%m-%d')}<br>"
-                    f"🟢 Open: {o}<br>"
-                    f"📈 High: {h}, 📉 Low: {l}<br>"
-                    f"🔚 Close: {c}<br>"
-                    f"{tag_labels.get(tag, tag)}"
-                    for d, o, h, l, c in zip(
-                        subset['date'], subset['open'], subset['high'], subset['low'], subset['close']
-                    )
-                ],
-                hoverinfo='text'
+                text=[tag]*len(subset),
                 textposition='top center',
-                textfont=dict(size=20)
+                textfont=dict(size=20),
+                marker=dict(size=14, symbol="circle", color='white'),
+            customdata=subset[['open', 'high', 'low', 'close']].values,
+            hovertemplate=(
+                "📅 Date: %{x|%Y-%m-%d}<br>" +
+                "🟢 Open: %{customdata[0]}<br>" +
+                "📈 High: %{customdata[1]}<br>" +
+                "📉 Low: %{customdata[2]}<br>" +
+                "🔚 Close: %{customdata[3]}<br>" +
+                f"{tag_labels.get(tag, tag)}<extra></extra>"
+                )
             ))
 
         fig.update_layout(
