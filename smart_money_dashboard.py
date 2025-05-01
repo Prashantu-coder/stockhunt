@@ -123,6 +123,7 @@ if uploaded_file:
                 x=subset['date'],
                 y=subset['close'],
                 mode='markers+text',
+                name=tag_labels.get(tag, tag),  # Show full name in legend
                 text=[tag]*len(subset),
                 textposition='top center',
                 textfont=dict(size=20)
