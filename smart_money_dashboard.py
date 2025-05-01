@@ -25,7 +25,7 @@ if uploaded_file:
         df['tag'] = ''
         avg_volume = df['volume'].rolling(window=10).mean()
 
-        for i in range(3, len(df)):
+        for i in range(3, len(df)-2):
             row = df.iloc[i]
             prev = df.iloc[i - 1]
             next1 = df.iloc[i + 1]
