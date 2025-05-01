@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
+import io
 from datetime import timedelta
 
 # --- Page setup ---
@@ -46,7 +47,7 @@ if uploaded_file:
                 df.at[i, 'tag'] = '💥 Bullish POR'
             elif row['low'] < min(df['low'].iloc[max(0, i-3):i]) and row['volume'] > avg_volume[i]:
                 df.at[i, 'tag'] = '💣Bearish POR'
-            # --- POI logic
+            # --- POI logic ---
             elif row['close'] > row['open'] and (row['close'] - row['open']) > (row['high'] - row['low']) * 0.7 and row['volume'] > avg_volume[i]*1.5:
                 df.at[i, 'tag'] = '🐂 Bullish POI'
             elif row['open'] > row['close'] and (row['open'] - row['close']) > (row['high'] - row['low']) * 0.7 and row['volume'] > avg_volume[i]*1.5:
@@ -75,9 +76,9 @@ if uploaded_file:
             subset = df[df['tag'] == tag]
             
             text_color = "white"
-            if '🐂' in tag:
+            if '🐂' in tag:  # Bullish POI
                 text_color = "lime"
-            elif '🐻' in tag:
+            elif '🐻' in tag:  # Bearish POI
                 text_color = "red"
             
             fig.add_trace(go.Scatter(
@@ -109,6 +110,20 @@ if uploaded_file:
         recent_df = df[(df['date'] >= one_month_ago) & (df['tag'] != '')]
 
         st.dataframe(recent_df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].sort_values('date', ascending=False))
+
+        # --- Download Button for Excel ---
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            recent_df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].to_excel(writer, index=False, sheet_name='Signals')
+            writer.save()
+        processed_data = output.getvalue()
+
+        st.download_button(
+            label="📥 Download 1 Month Signals as Excel",
+            data=processed_data,
+            file_name='recent_1_month_signals.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
 
     else:
         st.error("❌ Missing required columns: date, open, high, low, close, volume")
