@@ -125,10 +125,6 @@ if uploaded_file:
             ):
                 df.at[i, 'tag'] = '📈'
 
-
-            
-               
-
         # --- Filter tags ---
         tags_available = df['tag'].unique()
         tags_available = [tag for tag in tags_available if tag]
@@ -141,27 +137,29 @@ if uploaded_file:
 
         # --- Plotting Chart ---
         fig = go.Figure()
+
+        # Create the chart with dynamic X-axis based on price
         fig.add_trace(go.Scatter(
             x=df['date'], y=df['close'],
             mode='lines',
             name='Close Price',
             line=dict(color='lightblue'),
             hovertext=df['close'],  # Show price on hover
-            hoverinfo="x+open+high+low+close+text"  # Customize hover information
+            hoverinfo="x+y+text"  # Correct hover info format
         ))
 
         # Define full tag names
         tag_labels = {
-         '🟢': '🟢 Aggressive Buyers',
-        '🔴': '🔴 Aggressive Sellers',
-        '⛔': '⛔ Buyer Absorption',
-        '🚀': '🚀 Seller Absorption',
-        '💥': '💥 Bullish POR',
-        '💣': '💣 Bearish POR',
-        '🐂': '🐂 Bullish POI',
-        '🐻': '🐻 Bearish POI',
-        '📉':'📉 Bullish weak legs',
-        '📈':'📈 Bearish weak legs'
+            '🟢': '🟢 Aggressive Buyers',
+            '🔴': '🔴 Aggressive Sellers',
+            '⛔': '⛔ Buyer Absorption',
+            '🚀': '🚀 Seller Absorption',
+            '💥': '💥 Bullish POR',
+            '💣': '💣 Bearish POR',
+            '🐂': '🐂 Bullish POI',
+            '🐻': '🐻 Bearish POI',
+            '📉': '📉 Bullish weak legs',
+            '📈': '📈 Bearish weak legs'
         }
 
         for tag in selected_tags:
@@ -176,14 +174,14 @@ if uploaded_file:
                 textposition='top center',
                 textfont=dict(size=20),
                 marker=dict(size=14, symbol="circle", color='white'),
-            customdata=subset[['open', 'high', 'low', 'close']].values,
-            hovertemplate=(
-                "📅 Date: %{x|%Y-%m-%d}<br>" +
-                "🟢 Open: %{customdata[0]}<br>" +
-                "📈 High: %{customdata[1]}<br>" +
-                "📉 Low: %{customdata[2]}<br>" +
-                "🔚 Close: %{customdata[3]}<br>" +
-                f"{tag_labels.get(tag, tag)}<extra></extra>"
+                customdata=subset[['open', 'high', 'low', 'close']].values,
+                hovertemplate=(
+                    "📅 Date: %{x|%Y-%m-%d}<br>" +
+                    "🟢 Open: %{customdata[0]}<br>" +
+                    "📈 High: %{customdata[1]}<br>" +
+                    "📉 Low: %{customdata[2]}<br>" +
+                    "🔚 Close: %{customdata[3]}<br>" +
+                    f"{tag_labels.get(tag, tag)}<extra></extra>"
                 )
             ))
 
