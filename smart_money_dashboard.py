@@ -122,11 +122,10 @@ if uploaded_file:
             fig.add_trace(go.Scatter(
                 x=subset['date'],
                 y=subset['close'],
-                mode='markers',
-                name=tag_labels.get(tag, tag),  # Show full name in legend
-                marker=dict(size=14, symbol="circle", color='white'),
-                text=[tag]*len(subset),  # Only emoji shown as hover text
-                hoverinfo='text'
+                mode='text',
+                text=[tag]*len(subset),
+                textposition='top center',
+                textfont=dict(size=20)
             ))
 
         fig.update_layout(
