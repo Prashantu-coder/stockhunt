@@ -145,7 +145,7 @@ if uploaded_file:
             x=df['date'], y=df['close'],
             mode='lines',
             name='Close Price',
-            line=dict(color='lightblue')
+            line=dict(color='lightblue'),
             hovertext=df['close'],  # Show price on hover
             hoverinfo="x+open+high+low+close+text"  # Customize hover information
         ))
