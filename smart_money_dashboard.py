@@ -146,6 +146,8 @@ if uploaded_file:
             mode='lines',
             name='Close Price',
             line=dict(color='lightblue')
+            hovertext=df['close'],  # Show price on hover
+            hoverinfo="x+open+high+low+close+text"  # Customize hover information
         ))
 
         # Define full tag names
