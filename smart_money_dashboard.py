@@ -54,8 +54,8 @@ if uploaded_file:
                 and row['close'] < prev['close']
                 and (row['high'] - row['close']) > body
                 and row['volume'] > avg_volume[i] * 1.5
-                and next1['open'] < row['open']
-                and next2['close'] < row['close']
+                and next1['close'] < row['open']
+                and next2['close'] < row['open']
             ):
                 df.at[i, 'tag'] = '⛔'
 
