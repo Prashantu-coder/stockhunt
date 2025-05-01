@@ -70,6 +70,24 @@ if uploaded_file:
                 and next2['close'] > row['close']
             ):
                 df.at[i, 'tag'] = '🚀'
+            # Detecting buyer absorption across multiple previous bullish candles (loop until condition is met)
+            elif (
+                row['close'] < df.iloc[i - 1]['open']  # Close below the previous bullish candle's open
+                and row['volume'] > avg_volume[i] * 1.5
+                and row['high'] > df.iloc[i - 1]['high']  # Current high exceeds previous bullish candle's high
+                and next1['close'] < row['open']  # Check if next candle closes below current open
+            ):
+                df.at[i, 'tag'] = '⛔'  # Mark as Buyer Absorption
+
+            # Detecting seller absorption across multiple previous bearish candles (loop until condition is met)
+            elif (
+                row['close'] > df.iloc[i - 1]['open']  # Close above the previous bearish candle's open
+                and row['volume'] > avg_volume[i] * 1.5
+                and row['low'] < df.iloc[i - 1]['low']  # Current low is below previous bearish candle's low
+                and next1['close'] > row['close']  # Check if next candle closes above current close
+            ):
+                df.at[i, 'tag'] = '🚀'  # Mark as Seller Absorption
+
             elif (
                 row['high'] > max(df['high'].iloc[i - 3:i])
                 and row['volume'] > avg_volume[i] * 1.8
