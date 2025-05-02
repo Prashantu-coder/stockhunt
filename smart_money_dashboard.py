@@ -56,11 +56,6 @@ if uploaded_file:
             ):
                 df.at[i, 'tag'] = '🔴'
 
-            elif row['high'] > prev['high'] and row['close'] < prev['close'] and (row['high'] - row['close']) > (row['close'] - row['open']) and row['volume'] > avg_volume[i]:
-                df.at[i, 'tag'] = 'Buyer Absorption'
-            elif row['low'] < prev['low'] and row['close'] > prev['close'] and (row['close'] - row['low']) > (row['open'] - row['close']) and row['volume'] > avg_volume[i]:
-                df.at[i, 'tag'] = 'Seller Absorption'
-
             # ⛔ Buyer Absorption
             elif (
                 row['close'] > row['open']
@@ -81,7 +76,7 @@ if uploaded_file:
 
             # 💥 Bullish POR
             elif (
-                row['high'] > max(df['high'].iloc[i - 3:i])
+                row['high'] > max(df['high'].iloc[i - 10:i])
                 and row['volume'] > avg_volume[i] * 1.8
             ):
                 if not (df['tag'].iloc[i - 3:i] == '💥').any():
@@ -89,7 +84,7 @@ if uploaded_file:
 
             # 💣 Bearish POR
             elif (
-                row['low'] < min(df['low'].iloc[i - 3:i])
+                row['low'] < min(df['low'].iloc[i - 10:i])
                 and row['volume'] > avg_volume[i] * 1.8
             ):
                 if not (df['tag'].iloc[i - 3:i] == '💣').any():
