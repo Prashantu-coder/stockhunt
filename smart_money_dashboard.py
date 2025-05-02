@@ -16,13 +16,6 @@ if uploaded_file:
     df.columns = [col.lower() for col in df.columns]
     required_cols = {'date', 'open', 'high', 'low', 'close', 'volume'}
 
-df.columns = [col.lower() for col in df.columns]
-
-# Ensure numeric conversion for key columns to avoid TypeError
-for col in ['open', 'high', 'low', 'close', 'volume']:      
-    df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    df.dropna(subset=['open', 'high', 'low', 'close', 'volume'], inplace=True)
 
     if required_cols.issubset(set(df.columns)):
         df['date'] = pd.to_datetime(df['date'])
