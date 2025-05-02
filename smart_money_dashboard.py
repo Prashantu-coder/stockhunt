@@ -160,13 +160,14 @@ if uploaded_file:
                 textposition='top center',
                 textfont=dict(size=20),
                 marker=dict(size=14, symbol="circle", color='white'),
-                customdata=subset[['open', 'high', 'low', 'close']].values,
+                customdata=subset[['open', 'high', 'low', 'close', 'point_change']].values,
                 hovertemplate=(
                     "📅 Date: %{x|%Y-%m-%d}<br>" +
-                    "🟢 Open: %{customdata[0]}<br>" +
-                    "📈 High: %{customdata[1]}<br>" +
-                    "📉 Low: %{customdata[2]}<br>" +
-                    "🔚 Close: %{customdata[3]}<br>" +
+                    "🟢 Open: %{customdata[0]:.2f}<br>" +
+                    "📈 High: %{customdata[1]:.2f}<br>" +
+                    "📉 Low: %{customdata[2]:.2f}<br>" +
+                    "🔚 Close: %{customdata[3]:.2f}<br>" +
+                    "📊 Point Change: %{customdata[4]:.2f}<br>" +
                     f"{tag_labels.get(tag, tag)}<extra></extra>"
                 )
             ))
