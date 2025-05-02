@@ -108,7 +108,7 @@ if uploaded_file:
                 df['point_change'].iloc[i] > 0
                 and row['close'] > row['open']
                 and body < 0.3 * prev_body
-                and row['volume'] < avg_volume[i]
+                and row['volume'] < avg_volume[i] * 1.1
             ):
                 df.at[i, 'tag'] = '📉'
 
@@ -117,7 +117,7 @@ if uploaded_file:
                 df['point_change'].iloc[i] < 0
                 and row['open'] > row['close']
                 and body < 0.3 * prev_body
-                and row['volume'] < avg_volume[i] * 1.5
+                and row['volume'] < avg_volume[i] * 1.1
             ):
                 df.at[i, 'tag'] = '📈'
             
@@ -125,7 +125,7 @@ if uploaded_file:
             elif ( 
                 row['open'] > row['close']
                 and body >= 0.5 * prev_body
-                and row['volume'] < avg_volume[i] * 1.5
+                and row['volume'] < avg_volume[i] * 1.1
             ):
                 df.at[i, 'tag'] = '⚠️ Fake Drop'
 
@@ -133,7 +133,7 @@ if uploaded_file:
             elif (
                 row['close'] > row['open']
                 and body >= 0.5 * prev_body
-                and row['volume'] < avg_volume[i] * 1.5
+                and row['volume'] < avg_volume[i] *1.1
             ):
                 df.at[i, 'tag'] = '⚠️ Fake Rise'
 
