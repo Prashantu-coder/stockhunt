@@ -26,11 +26,10 @@ if uploaded_file:
         df['tag'] = ''
         avg_volume = df['volume'].rolling(window=10).mean()
 
-        for i in range(3, len(df) - 2):
+        for i in range(3, len(df) - 6):  # ensure room for lookahead
             row = df.iloc[i]
             prev = df.iloc[i - 1]
-            next1 = df.iloc[i + 1]
-            next2 = df.iloc[i + 2]
+            next_candles = df.iloc[i + 1:i + 6]  # next 5 candles
             body = abs(row['close'] - row['open'])
             prev_body = abs(prev['close'] - prev['open'])
 
@@ -54,43 +53,21 @@ if uploaded_file:
 
             # ⛔ Buyer Absorption
             elif (
-                row['high'] > prev['high']
-                and row['close'] < prev['close']
-                and (row['high'] - row['close']) > body
+                row['close'] > row['open']
+                and body > (row['high'] - row['low']) * 0.6
                 and row['volume'] > avg_volume[i] * 1.5
-                and next1['close'] < row['open']
-                and next2['close'] < row['open']
             ):
-                df.at[i, 'tag'] = '⛔'
+                if all(candle['close'] < row['open'] for _, candle in next_candles.iterrows()):
+                    df.at[i, 'tag'] = '⛔'
 
             # 🚀 Seller Absorption
             elif (
-                row['low'] < prev['low']
-                and row['close'] > prev['close']
-                and (row['close'] - row['low']) > body
+                row['open'] > row['close']
+                and body > (row['high'] - row['low']) * 0.6
                 and row['volume'] > avg_volume[i] * 1.5
-                and next1['close'] > row['close']
-                and next2['close'] > row['close']
             ):
-                df.at[i, 'tag'] = '🚀'
-
-            # Extended ⛔ Buyer Absorption (multi-candle)
-            elif (
-                row['close'] < df.iloc[i - 1]['open']
-                and row['volume'] > avg_volume[i] * 1.5
-                and row['high'] > df.iloc[i - 1]['high']
-                and next1['close'] < row['open']
-            ):
-                df.at[i, 'tag'] = '⛔'
-
-            # Extended 🚀 Seller Absorption (multi-candle)
-            elif (
-                row['close'] > df.iloc[i - 1]['open']
-                and row['volume'] > avg_volume[i] * 1.5
-                and row['low'] < df.iloc[i - 1]['low']
-                and next1['close'] > row['close']
-            ):
-                df.at[i, 'tag'] = '🚀'
+                if all(candle['close'] > row['open'] for _, candle in next_candles.iterrows()):
+                    df.at[i, 'tag'] = '🚀'
 
             # 💥 Bullish POR
             elif (
