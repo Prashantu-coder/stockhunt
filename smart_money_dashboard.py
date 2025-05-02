@@ -124,7 +124,7 @@ if uploaded_file:
             # ⚠️ Fake Drop - Large bearish candle but weak volume
             elif ( 
                 row['open'] > row['close']
-                and body >= 0.5 * prev_body
+                and body >= 0.3 * prev_body
                 and row['volume'] < avg_volume[i] * 1.1
                 and prev['close'] > prev['open']
             ):
@@ -133,7 +133,7 @@ if uploaded_file:
             # ⚠️ Fake Rise - Large bullish candle but weak volume
             elif (
                 row['close'] > row['open']
-                and body >= 0.5 * prev_body
+                and body >= 0.3 * prev_body
                 and row['volume'] < avg_volume[i] *1.1
                 and prev['open'] > prev['close']
             ):
