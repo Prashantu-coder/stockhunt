@@ -120,6 +120,23 @@ if uploaded_file:
                 and row['volume'] < avg_volume[i] * 2.0
             ):
                 df.at[i, 'tag'] = '📈'
+            
+            # ⚠️ Fake Drop - Large bearish candle but weak volume
+            elif ( 
+                row['open'] > row['close']
+                and body >= 0.5 * prev_body
+                and row['volume'] < avg_volume[i] * 1.5
+            ):
+                df.at[i, 'tag'] = '⚠️ Fake Drop'
+
+            # ⚠️ Fake Rise - Large bullish candle but weak volume
+            elif (
+                row['close'] > row['open']
+                and body >= 0.5 * prev_body
+                and row['volume'] < avg_volume[i] * 1.5
+            ):
+                df.at[i, 'tag'] = '⚠️ Fake Rise'
+
 
         # --- Filter tags ---
         tags_available = [tag for tag in df['tag'].unique() if tag]
@@ -147,7 +164,9 @@ if uploaded_file:
             '🐂': '🐂 Bullish POI',
             '🐻': '🐻 Bearish POI',
             '📉': '📉 Bullish Weak Legs',
-            '📈': '📈 Bearish Weak Legs'
+            '📈': '📈 Bearish Weak Legs',
+            '⚠️': '⚠️ Fake Drop',
+            '⚠️': '⚠️ Fake Rise'
         }
 
         for tag in selected_tags:
