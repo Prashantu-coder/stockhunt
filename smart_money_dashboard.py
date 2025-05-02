@@ -25,6 +25,7 @@ if uploaded_file:
         # Add your tagging logic here
 
         # --- Tag selection UI ---
+    if 'tag' in df.columns:
         tags_available = df['tag'].unique()
         tags_available = [tag for tag in tags_available if tag]
 
@@ -36,7 +37,9 @@ if uploaded_file:
                 default=tags_available,
                 key="tag_selector"
             )
-
+    else:
+        st.warning("⚠️ No 'tag' column found in the data. Please upload a file that includes tagged signals.")  
+        
         # --- Plotting Chart ---
         fig = go.Figure()
 
