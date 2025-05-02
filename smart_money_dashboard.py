@@ -5,8 +5,8 @@ import io
 from datetime import timedelta
 
 # --- Page setup ---
-st.set_page_config(page_title="Smart Money Visualizer", layout="wide")
-st.title("💸 Smart Money Visualizer")
+st.set_page_config(page_title="Quantexo", layout="wide")
+st.title("Advanced Insights for Bold Trades")
 
 # --- Upload data ---
 uploaded_file = st.file_uploader("Upload Daily OHLCV CSV", type="csv")
