@@ -95,6 +95,7 @@ if uploaded_file:
 
             # 💣 Bearish POR
             elif (
+                i >= 10 and
                 row['low'] < min(df['low'].iloc[i - 10:i])
                 and row['volume'] > avg_volume[i] * 1.8
             ):
