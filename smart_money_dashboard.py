@@ -53,6 +53,11 @@ if uploaded_file:
             ):
                 df.at[i, 'tag'] = '🔴'
 
+            elif row['high'] > prev['high'] and row['close'] < prev['close'] and (row['high'] - row['close']) > (row['close'] - row['open']) and row['volume'] > avg_volume[i]:
+                df.at[i, 'tag'] = 'Buyer Absorption'
+            elif row['low'] < prev['low'] and row['close'] > prev['close'] and (row['close'] - row['low']) > (row['open'] - row['close']) and row['volume'] > avg_volume[i]:
+                df.at[i, 'tag'] = 'Seller Absorption'
+
             # ⛔ Buyer Absorption
             elif (
                 row['close'] > row['open']
@@ -128,7 +133,7 @@ if uploaded_file:
                 and row['volume'] < avg_volume[i] * 1.1
                 and prev['close'] > prev['open']
             ):
-                df.at[i, 'tag'] = '⚠️ Fake Drop'
+                df.at[i, 'tag'] = '⚠️'
 
             # ⚠️ Fake Rise - Large bullish candle but weak volume
             elif (
@@ -137,7 +142,7 @@ if uploaded_file:
                 and row['volume'] < avg_volume[i] *1.1
                 and prev['open'] > prev['close']
             ):
-                df.at[i, 'tag'] = '⚠️ Fake Rise'
+                df.at[i, 'tag'] = '⚠️'
 
 
         # --- Filter tags ---
@@ -168,7 +173,9 @@ if uploaded_file:
             '📉': '📉 Bullish Weak Legs',
             '📈': '📈 Bearish Weak Legs',
             '⚠️': '⚠️ Fake Drop',
-            '⚠️': '⚠️ Fake Rise'
+            '⚠️': '⚠️ Fake Rise',
+            'Buyer Absorption':'Buyer Absorption',
+            'Seller Absorption' : 'Seller Absorption'
         }
 
         for tag in selected_tags:
