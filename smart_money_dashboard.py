@@ -26,7 +26,7 @@ if uploaded_file:
 
         # --- Signal Tagging ---
         df['tag'] = ''
-        avg_volume = df['volume'].rolling(window=20).mean()
+        avg_volume = df['volume'].rolling(window=9).mean()
 
         for i in range(3, len(df) - 6):  # ensure room for lookahead
             row = df.iloc[i]
@@ -57,7 +57,7 @@ if uploaded_file:
             elif (
                 row['close'] > row['open']
                 and body > (row['high'] - row['low']) * 0.6
-                and row['volume'] > avg_volume[i] * 1.5
+                and row['volume'] > avg_volume[i] * 1.2
             ):
                 if all(candle['close'] < row['open'] for _, candle in next_candles.iterrows()):
                     df.at[i, 'tag'] = '⛔'
@@ -66,7 +66,7 @@ if uploaded_file:
             elif (
                 row['open'] > row['close']
                 and body > (row['high'] - row['low']) * 0.6
-                and row['volume'] > avg_volume[i] * 1.5
+                and row['volume'] > avg_volume[i] * 1.2
             ):
                 if all(candle['close'] > row['open'] for _, candle in next_candles.iterrows()):
                     df.at[i, 'tag'] = '🚀'
