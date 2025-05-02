@@ -26,7 +26,7 @@ if uploaded_file:
 
         # --- Signal Tagging ---
         df['tag'] = ''
-        avg_volume = df['volume'].rolling(window=10).mean()
+        avg_volume = df['volume'].rolling(window=20).mean()
 
         for i in range(3, len(df) - 6):  # ensure room for lookahead
             row = df.iloc[i]
