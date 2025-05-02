@@ -67,12 +67,22 @@ if uploaded_file:
 
             # 🚀 Seller Absorption
             elif (
+                (
                 row['open'] > row['close']
                 and body > (row['high'] - row['low']) * 0.6
                 and row['volume'] > avg_volume[i] * 1.2
+                and all(candle['close'] > row['open'] for _, candle in next_candles.iterrows())
+                )
+            or
+                (
+                row['close'] > row['open']
+             and body > (row['high'] - row['low']) * 0.7
+                and row['volume'] > avg_volume[i] * 1.5
+                and all(candle['close'] > row['close'] for _, candle in next_candles.iterrows())
+                )
             ):
-                if all(candle['close'] > row['open'] for _, candle in next_candles.iterrows()):
                     df.at[i, 'tag'] = '🚀'
+
 
             # 💥 Bullish POR
             elif (
