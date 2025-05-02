@@ -135,6 +135,7 @@ if uploaded_file:
                 and body >= 0.3 * prev_body
                 and row['volume'] < avg_volume[i] * 1.1
                 and prev['close'] > prev['open']
+                and '⚠️' not in recent_tags.values
             ):
                 df.at[i, 'tag'] = '⚠️'
 
@@ -144,6 +145,7 @@ if uploaded_file:
                 and body >= 0.3 * prev_body
                 and row['volume'] < avg_volume[i] *1.1
                 and prev['open'] > prev['close']
+                and '⚠️' not in recent_tags.values
             ):
                 df.at[i, 'tag'] = '⚠️'
 
