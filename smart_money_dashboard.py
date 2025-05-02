@@ -34,6 +34,7 @@ if uploaded_file:
             next_candles = df.iloc[i + 1:i + 6]  # next 5 candles
             body = abs(row['close'] - row['open'])
             prev_body = abs(prev['close'] - prev['open'])
+            recent_tags = df['tag'].iloc[max(0, i-4):i]
 
             # 🟢 Aggressive Buyers
             if (
@@ -41,6 +42,7 @@ if uploaded_file:
                 and row['close'] >= row['high'] - (row['high'] - row['low']) * 0.1
                 and row['volume'] > avg_volume[i]
                 and body > prev_body
+                and '🟢' not in recent_tags.values
             ):
                 df.at[i, 'tag'] = '🟢'
 
@@ -48,8 +50,9 @@ if uploaded_file:
             elif (
                 row['open'] > row['close']
                 and row['close'] <= row['low'] + (row['high'] - row['low']) * 0.1
-                and row['volume'] > avg_volume[i]
+                and row['volume'] > avg_volume[i] 
                 and body > prev_body
+                and '🔴' not in recent_tags.values
             ):
                 df.at[i, 'tag'] = '🔴'
 
