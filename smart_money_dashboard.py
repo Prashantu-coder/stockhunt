@@ -16,13 +16,14 @@ if uploaded_file:
     df.columns = [col.lower() for col in df.columns]
     required_cols = {'date', 'open', 'high', 'low', 'close', 'volume'}
 
-
     if required_cols.issubset(set(df.columns)):
         df['date'] = pd.to_datetime(df['date'])
         df.sort_values('date', inplace=True)
         df.reset_index(drop=True, inplace=True)
+
+        # ➕ Calculate point change
         df['point_change'] = df['close'].diff().fillna(0)
-        
+
         # --- Signal Tagging ---
         df['tag'] = ''
         avg_volume = df['volume'].rolling(window=10).mean()
@@ -102,17 +103,19 @@ if uploaded_file:
             ):
                 df.at[i, 'tag'] = '🐻'
 
-            # 📉 Bullish Weak Legs
+            # 📉 Bullish Weak Legs (updated)
             elif (
-                row['close'] > row['open']
+                df['point_change'].iloc[i] > 0
+                and row['close'] > row['open']
                 and body < 0.3 * prev_body
                 and row['volume'] < avg_volume[i]
             ):
                 df.at[i, 'tag'] = '📉'
 
-            # 📈 Bearish Weak Legs
+            # 📈 Bearish Weak Legs (updated)
             elif (
-                row['open'] > row['close']
+                df['point_change'].iloc[i] < 0
+                and row['open'] > row['close']
                 and body < 0.3 * prev_body
                 and row['volume'] < avg_volume[i] * 1.5
             ):
@@ -198,12 +201,12 @@ if uploaded_file:
         one_month_ago = last_date - timedelta(days=30)
         recent_df = df[(df['date'] >= one_month_ago) & (df['tag'] != '')]
 
-        st.dataframe(recent_df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].sort_values('date', ascending=False))
+        st.dataframe(recent_df[['date', 'open', 'high', 'low', 'close', 'point_change', 'volume', 'tag']].sort_values('date', ascending=False))
 
         # --- Download Excel ---
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            recent_df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].to_excel(writer, index=False, sheet_name='Signals')
+            recent_df[['date', 'open', 'high', 'low', 'close', 'point_change', 'volume', 'tag']].to_excel(writer, index=False, sheet_name='Signals')
         processed_data = output.getvalue()
 
         st.download_button(
