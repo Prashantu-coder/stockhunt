@@ -135,9 +135,9 @@ if uploaded_file:
                 and body >= 0.3 * prev_body
                 and row['volume'] < avg_volume[i] * 1.1
                 and prev['close'] > prev['open']
-                and '⚠️' not in recent_tags.values
+                and '⚠️ D' not in recent_tags.values
             ):
-                df.at[i, 'tag'] = '⚠️'
+                df.at[i, 'tag'] = '⚠️ D'
 
             # ⚠️ Fake Rise - Large bullish candle but weak volume
             elif (
@@ -145,9 +145,9 @@ if uploaded_file:
                 and body >= 0.3 * prev_body
                 and row['volume'] < avg_volume[i] *1.1
                 and prev['open'] > prev['close']
-                and '⚠️' not in recent_tags.values
+                and '⚠️ R' not in recent_tags.values
             ):
-                df.at[i, 'tag'] = '⚠️'
+                df.at[i, 'tag'] = '⚠️ R'
 
 
         # --- Filter tags ---
@@ -177,8 +177,8 @@ if uploaded_file:
             '🐻': '🐻 Bearish POI',
             '📉': '📉 Bullish Weak Legs',
             '📈': '📈 Bearish Weak Legs',
-            '⚠️': '⚠️ Fake Drop',
-            '⚠️': '⚠️ Fake Rise',
+            '⚠️ D': '⚠️ Fake Drop',
+            '⚠️ R': '⚠️ Fake Rise',
             'Buyer Absorption':'Buyer Absorption',
             'Seller Absorption' : 'Seller Absorption'
         }
