@@ -26,7 +26,7 @@ if uploaded_file:
 
         # --- Signal Tagging ---
         df['tag'] = ''
-        avg_volume = df['volume'].rolling(window=9).mean()
+        avg_volume = df['volume'].rolling(window=10).mean()
 
         for i in range(3, len(df) - 6):  # ensure room for lookahead
             row = df.iloc[i]
@@ -48,7 +48,7 @@ if uploaded_file:
             elif (
                 row['open'] > row['close']
                 and row['close'] <= row['low'] + (row['high'] - row['low']) * 0.1
-                and row['volume'] > avg_volume[i] * 1.5
+                and row['volume'] > avg_volume[i]
                 and body > prev_body
             ):
                 df.at[i, 'tag'] = '🔴'
