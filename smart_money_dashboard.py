@@ -86,6 +86,7 @@ if uploaded_file:
 
             # 💥 Bullish POR
             elif (
+                i >= 10 and
                 row['high'] > max(df['high'].iloc[i - 10:i])
                 and row['volume'] > avg_volume[i] * 1.8
             ):
