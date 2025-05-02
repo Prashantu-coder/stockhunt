@@ -21,7 +21,8 @@ if uploaded_file:
         df['date'] = pd.to_datetime(df['date'])
         df.sort_values('date', inplace=True)
         df.reset_index(drop=True, inplace=True)
-
+        df['point_change'] = df['close'].diff().fillna(0)
+        
         # --- Signal Tagging ---
         df['tag'] = ''
         avg_volume = df['volume'].rolling(window=10).mean()
