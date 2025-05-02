@@ -126,6 +126,7 @@ if uploaded_file:
                 row['open'] > row['close']
                 and body >= 0.5 * prev_body
                 and row['volume'] < avg_volume[i] * 1.1
+                and prev['close'] > prev['open']
             ):
                 df.at[i, 'tag'] = '⚠️ Fake Drop'
 
@@ -134,6 +135,7 @@ if uploaded_file:
                 row['close'] > row['open']
                 and body >= 0.5 * prev_body
                 and row['volume'] < avg_volume[i] *1.1
+                and prev['open'] > prev['close']
             ):
                 df.at[i, 'tag'] = '⚠️ Fake Rise'
 
