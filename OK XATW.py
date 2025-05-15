@@ -200,7 +200,7 @@ if uploaded_file:
         one_month_ago = last_date - timedelta(days=30)
         recent_df = df[(df['date'] >= one_month_ago) & (df['tag'] != '')]
 
-        st.dataframe(recent_df[['date', 'open', 'high', 'low', 'close', 'point_change', 'volume', 'tag']].sort_values('date', ascending=False))
+        st.dataframe(recent_df[['date', 'open', 'high', 'low', 'close',  'volume', 'tag']].sort_values('date', ascending=False))
 
         # --- Download Excel ---
         output = io.BytesIO()
