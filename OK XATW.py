@@ -25,114 +25,118 @@ if uploaded_file:
         df['tag'] = ''
         avg_volume = df['volume'].rolling(window=10).mean()
 
-        for i in range(3, len(df) - 6):  # ensure room for lookahead
-            row = df.iloc[i]
-            prev = df.iloc[i - 1]
-            next_candles = df.iloc[i + 1:i + 6]  # next 5 candles
-            body = abs(row['close'] - row['open'])
-            prev_body = abs(prev['close'] - prev['open'])
-            recent_tags = df['tag'].iloc[max(0, i-4):i]
+        for i in range(min(3, len(df)-1), len(df)):
+                row = df.iloc[i]
+                prev = df.iloc[i - 1]
+                next_candles = df.iloc[i + 1:min(i + 6, len(df))]
+                is_last_candle = (i == len(df) - 1)  # Flag for last candle
 
-            # 🟢 Aggressive Buyers
-            if (
-                row['close'] > row['open']
-                and row['close'] >= row['high'] - (row['high'] - row['low']) * 0.1
-                and row['volume'] > avg_volume[i]
-                and body > prev_body
-                and '🟢' not in recent_tags.values
-            ):
-                df.at[i, 'tag'] = '🟢'
+                body = abs(row['close'] - row['open'])
+                prev_body = abs(prev['close'] - prev['open'])
+                recent_tags = df['tag'].iloc[max(0, i - 4):i]
 
-            # 🔴 Aggressive Sellers
-            elif (
-                row['open'] > row['close']
-                and row['close'] <= row['low'] + (row['high'] - row['low']) * 0.1
-                and row['volume'] > avg_volume[i] 
-                and body > prev_body
-                and '🔴' not in recent_tags.values
-            ):
-                df.at[i, 'tag'] = '🔴'
+                # --- Signals that DON'T require future data (always checked) ---
+                if (
+                    row['close'] > row['open'] and
+                    row['close'] >= row['high'] - (row['high'] - row['low']) * 0.1 and
+                    row['volume'] > avg_volume[i] * 1.5 and
+                    body > prev_body and
+                    '🟢' not in recent_tags.values
+                ):
+                    df.at[i, 'tag'] = '🟢'
 
-            # ⛔ Buyer Absorption
-            elif (
-                row['close'] > row['open']
-                and body > (row['high'] - row['low']) * 0.4
-                and row['volume'] > avg_volume[i]
-            ):
-                for j, candle in next_candles.iterrows():
-                    if candle['close'] < row['open']:  # Bearish confirmation
-                        df.at[j, 'tag'] = '⛔'  # Tag FIRST bearish candle closing below
-                        break  # Stop after first occurrence
+                elif (
+                    row['open'] > row['close'] and
+                    row['close'] <= row['low'] + (row['high'] - row['low']) * 0.1 and
+                    row['volume'] > avg_volume[i] * 1.5 and
+                    body > prev_body and
+                    '🔴' not in recent_tags.values
+                ):
+                    df.at[i, 'tag'] = '🔴'
 
-            # 🚀 Seller Absorption
-            elif (
-                row['open'] > row['close']
-                and body > (row['high'] - row['low']) * 0.4
-                and row['volume'] > avg_volume[i]
-            ):
-                for j, candle in next_candles.iterrows():  # Check next 5 candles
-                    if candle['close'] > row['open']:  # Price recovers above bearish candle's open
-                        df.at[j, 'tag'] = '🚀'  # Tag the rejection candle
-                    break  # Stop at first confirmation
+                elif (
+                    i >= 10 and
+                    row['high'] > max(df['high'].iloc[i - 10:i]) and
+                    row['volume'] > avg_volume[i] * 1.8
+                ):
+                    if not (df['tag'].iloc[i - 3:i] == '💥').any():
+                        df.at[i, 'tag'] = '💥'
 
+                elif (
+                    i >= 10 and
+                    row['low'] < min(df['low'].iloc[i - 10:i]) and
+                    row['volume'] > avg_volume[i] * 1.8
+                ):
+                    if not (df['tag'].iloc[i - 3:i] == '💣').any():
+                        df.at[i, 'tag'] = '💣'
 
-            # 💥 Bullish POR
-            elif (
-                i >= 10 and
-                row['high'] > max(df['high'].iloc[i - 10:i])
-                and row['volume'] > avg_volume[i] * 1.8
-            ):
-                if not (df['tag'].iloc[i - 3:i] == '💥').any():
-                    df.at[i, 'tag'] = '💥'
+                elif (
+                    row['close'] > row['open'] and
+                    body > (row['high'] - row['low']) * 0.7 and
+                    row['volume'] > avg_volume[i] * 2
+                ):
+                    df.at[i, 'tag'] = '🐂'
 
-            # 💣 Bearish POR
-            elif (
-                i >= 10 and
-                row['low'] < min(df['low'].iloc[i - 10:i])
-                and row['volume'] > avg_volume[i] * 1.8
-            ):
-                if not (df['tag'].iloc[i - 3:i] == '💣').any():
-                    df.at[i, 'tag'] = '💣'
+                elif (
+                    row['open'] > row['close'] and
+                    body > (row['high'] - row['low']) * 0.7 and
+                    row['volume'] > avg_volume[i] * 2
+                ):
+                    df.at[i, 'tag'] = '🐻'
 
-            # 🐂 Bullish POI
-            elif (
-                row['close'] > row['open']
-                and body > (row['high'] - row['low']) * 0.6
-                and row['volume'] > avg_volume[i] * 1.8
-            ):
-                df.at[i, 'tag'] = '🐂'
+                elif (
+                    df['point_change'].iloc[i] > 0 and
+                    row['close'] > row['open'] and
+                    body < 0.3 * prev_body and
+                    row['volume'] < avg_volume[i] * 0.5
+                ):
+                    df.at[i, 'tag'] = '📉'
 
-            # 🐻 Bearish POI
-            elif (
-                row['open'] > row['close']
-                and body > (row['high'] - row['low']) * 0.6
-                and row['volume'] > avg_volume[i] * 1.8
-            ):
-                df.at[i, 'tag'] = '🐻'
-            
-            # ⚠️ Fake Drop - Large bearish candle but weak volume
-            elif ( 
-                row['open'] > row['close']
-                and body >= 0.3 * prev_body
-                and row['volume'] < avg_volume[i] * 1.1
-                and prev['close'] > prev['open']
-                and '⚠️ D' not in recent_tags.values
-                and '⚠️ R' not in recent_tags.values
-            ):
-                df.at[i, 'tag'] = '⚠️ D'
+                elif (
+                    df['point_change'].iloc[i] < 0 and
+                    row['open'] > row['close'] and
+                    body < 0.3 * prev_body and
+                    row['volume'] < avg_volume[i] * 0.5
+                ):
+                    df.at[i, 'tag'] = '📈'
 
-            # ⚠️ Fake Rise - Large bullish candle but weak volume
-            elif (
-                row['close'] > row['open']
-                and body >= 0.3 * prev_body
-                and row['volume'] < avg_volume[i] *1.1
-                and prev['open'] > prev['close']
-                and '⚠️ R' not in recent_tags.values
-                and '⚠️ D' not in recent_tags.values
-            ):
-                df.at[i, 'tag'] = '⚠️ R'
+                # --- Signals that normally require future data ---
+                # Modified to work on last candle with adjusted conditions
+                if is_last_candle:
+                    # For ⛔ (Buyer Absorption): Check if last candle is bullish with high volume
+                    if (
+                        row['close'] > row['open'] and
+                        row['volume'] > avg_volume[i] * 1.5
+                    ):
+                        df.at[i, 'tag'] = '⛔ (Potential)'
 
+                    # For 🚀 (Seller Absorption): Check if last candle is bearish with high volume
+                    elif (
+                        row['open'] > row['close'] and
+                        row['volume'] > avg_volume[i] * 1.5
+                    ):
+                        df.at[i, 'tag'] = '🚀 (Potential)'
+                else:
+                    # Original future-dependent logic for non-last candles
+                    if (
+                        row['close'] > row['open'] and
+                        row['volume'] > avg_volume[i] * 1.2
+                    ):
+                        df.loc[df['tag'] == '⛔', 'tag'] = ''
+                        for j, candle in next_candles.iterrows():
+                            if candle['close'] < row['open']:
+                                df.at[j, 'tag'] = '⛔'
+                                break
 
+                    elif (
+                        row['open'] > row['close'] and
+                        row['volume'] > avg_volume[i] * 1.2
+                    ):
+                        df.loc[df['tag'] == '🚀', 'tag'] = ''
+                        for j, candle in next_candles.iterrows():
+                            if candle['close'] > row['open']:
+                                df.at[j, 'tag'] = '🚀'
+                                break
         # --- Filter tags ---
         tags_available = [tag for tag in df['tag'].unique() if tag]
         selected_tags = st.multiselect("Select Signal(s) to View", options=tags_available, default=tags_available)
@@ -160,10 +164,6 @@ if uploaded_file:
             '🐻': '🐻 Bearish POI',
             '📉': '📉 Bullish Weak Legs',
             '📈': '📈 Bearish Weak Legs',
-            '⚠️ D': '⚠️ Fake Drop',
-            '⚠️ R': '⚠️ Fake Rise',
-            'Buyer Absorption':'Buyer Absorption',
-            'Seller Absorption' : 'Seller Absorption'
         }
 
         for tag in selected_tags:
