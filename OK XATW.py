@@ -20,7 +20,7 @@ if uploaded_file:
         df['date'] = pd.to_datetime(df['date'])
         df.sort_values('date', inplace=True)
         df.reset_index(drop=True, inplace=True)
-        
+
         # --- Signal Tagging ---
         df['tag'] = ''
         avg_volume = df['volume'].rolling(window=10).mean()
