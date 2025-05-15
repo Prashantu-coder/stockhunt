@@ -205,7 +205,7 @@ if uploaded_file:
         # --- Download Excel ---
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            recent_df[['date', 'open', 'high', 'low', 'close', 'point_change', 'volume', 'tag']].to_excel(writer, index=False, sheet_name='Signals')
+            recent_df[['date', 'open', 'high', 'low', 'close', 'volume', 'tag']].to_excel(writer, index=False, sheet_name='Signals')
         processed_data = output.getvalue()
 
         st.download_button(
