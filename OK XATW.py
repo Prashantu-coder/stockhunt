@@ -21,9 +21,6 @@ if uploaded_file:
         df.sort_values('date', inplace=True)
         df.reset_index(drop=True, inplace=True)
 
-        # ➕ Calculate point change
-        df['point_change'] = df['close'].diff().fillna(0)
-
         # --- Signal Tagging ---
         df['tag'] = ''
         avg_volume = df['volume'].rolling(window=10).mean()
@@ -59,20 +56,24 @@ if uploaded_file:
             # ⛔ Buyer Absorption
             elif (
                 row['close'] > row['open']
-                and body > (row['high'] - row['low']) * 0.6
-                and row['volume'] > avg_volume[i] * 1.2
+                and body > (row['high'] - row['low']) * 0.4
+                and row['volume'] > avg_volume[i]
             ):
-                if all(candle['close'] < row['open'] for _, candle in next_candles.iterrows()):
-                    df.at[i, 'tag'] = '⛔'
+                for j, candle in next_candles.iterrows():
+                    if candle['close'] < row['open']:  # Bearish confirmation
+                        df.at[j, 'tag'] = '⛔'  # Tag FIRST bearish candle closing below
+                        break  # Stop after first occurrence
 
             # 🚀 Seller Absorption
             elif (
                 row['open'] > row['close']
-                and body > (row['high'] - row['low']) * 0.6
-                and row['volume'] > avg_volume[i] * 1.2
-                and all(candle['close'] > row['open'] for _, candle in next_candles.iterrows())
+                and body > (row['high'] - row['low']) * 0.4
+                and row['volume'] > avg_volume[i]
             ):
-                    df.at[i, 'tag'] = '🚀'
+                for j, candle in next_candles.iterrows():  # Check next 5 candles
+                    if candle['close'] > row['open']:  # Price recovers above bearish candle's open
+                        df.at[j, 'tag'] = '🚀'  # Tag the rejection candle
+                    break  # Stop at first confirmation
 
 
             # 💥 Bullish POR
@@ -96,16 +97,16 @@ if uploaded_file:
             # 🐂 Bullish POI
             elif (
                 row['close'] > row['open']
-                and body > (row['high'] - row['low']) * 0.7
-                and row['volume'] > avg_volume[i] * 2
+                and body > (row['high'] - row['low']) * 0.6
+                and row['volume'] > avg_volume[i] * 1.8
             ):
                 df.at[i, 'tag'] = '🐂'
 
             # 🐻 Bearish POI
             elif (
                 row['open'] > row['close']
-                and body > (row['high'] - row['low']) * 0.7
-                and row['volume'] > avg_volume[i] * 2
+                and body > (row['high'] - row['low']) * 0.6
+                and row['volume'] > avg_volume[i] * 1.8
             ):
                 df.at[i, 'tag'] = '🐻'
 
@@ -134,6 +135,7 @@ if uploaded_file:
                 and row['volume'] < avg_volume[i] * 1.1
                 and prev['close'] > prev['open']
                 and '⚠️ D' not in recent_tags.values
+                and '⚠️ R' not in recent_tags.values
             ):
                 df.at[i, 'tag'] = '⚠️ D'
 
@@ -144,6 +146,7 @@ if uploaded_file:
                 and row['volume'] < avg_volume[i] *1.1
                 and prev['open'] > prev['close']
                 and '⚠️ R' not in recent_tags.values
+                and '⚠️ D' not in recent_tags.values
             ):
                 df.at[i, 'tag'] = '⚠️ R'
 
