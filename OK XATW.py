@@ -166,7 +166,6 @@ if uploaded_file:
                     "📈 High: %{customdata[1]:.2f}<br>" +
                     "📉 Low: %{customdata[2]:.2f}<br>" +
                     "🔚 Close: %{customdata[3]:.2f}<br>" +
-                    "📊 Point Change: %{customdata[4]:.2f}<br>" +
                     f"{tag_labels.get(tag, tag)}<extra></extra>"
                 )
             ))
