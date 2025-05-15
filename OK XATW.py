@@ -109,24 +109,6 @@ if uploaded_file:
                 and row['volume'] > avg_volume[i] * 1.8
             ):
                 df.at[i, 'tag'] = '🐻'
-
-            # 📉 Bullish Weak Legs (updated)
-            elif (
-                df['point_change'].iloc[i] > 0
-                and row['close'] > row['open']
-                and body < 0.3 * prev_body
-                and row['volume'] < avg_volume[i] * 1.1
-            ):
-                df.at[i, 'tag'] = '📉'
-
-            # 📈 Bearish Weak Legs (updated)
-            elif (
-                df['point_change'].iloc[i] < 0
-                and row['open'] > row['close']
-                and body < 0.3 * prev_body
-                and row['volume'] < avg_volume[i] * 1.1
-            ):
-                df.at[i, 'tag'] = '📈'
             
             # ⚠️ Fake Drop - Large bearish candle but weak volume
             elif ( 
