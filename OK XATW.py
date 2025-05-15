@@ -84,22 +84,6 @@ if uploaded_file:
                 ):
                     df.at[i, 'tag'] = '🐻'
 
-                elif (
-                    df['point_change'].iloc[i] > 0 and
-                    row['close'] > row['open'] and
-                    body < 0.3 * prev_body and
-                    row['volume'] < avg_volume[i] * 0.5
-                ):
-                    df.at[i, 'tag'] = '📉'
-
-                elif (
-                    df['point_change'].iloc[i] < 0 and
-                    row['open'] > row['close'] and
-                    body < 0.3 * prev_body and
-                    row['volume'] < avg_volume[i] * 0.5
-                ):
-                    df.at[i, 'tag'] = '📈'
-
                 # --- Signals that normally require future data ---
                 # Modified to work on last candle with adjusted conditions
                 if is_last_candle:
@@ -137,6 +121,7 @@ if uploaded_file:
                             if candle['close'] > row['open']:
                                 df.at[j, 'tag'] = '🚀'
                                 break
+
         # --- Filter tags ---
         tags_available = [tag for tag in df['tag'].unique() if tag]
         selected_tags = st.multiselect("Select Signal(s) to View", options=tags_available, default=tags_available)
@@ -162,8 +147,6 @@ if uploaded_file:
             '💣': '💣 Bearish POR',
             '🐂': '🐂 Bullish POI',
             '🐻': '🐻 Bearish POI',
-            '📉': '📉 Bullish Weak Legs',
-            '📈': '📈 Bearish Weak Legs',
         }
 
         for tag in selected_tags:
